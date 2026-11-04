@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<!-- 
+  [SECURITY CLEARANCE: PUBLIC_PORTFOLIO]
+  CIA TRIAD ACKNOWLEDGEMENT:
+  - Confidentiality: No sensitive data exposed. Public profile data only.
+  - Integrity: Static content structure, resistant to unauthorized modification. All dynamic DOM nodes created via safe DOM APIs (zero innerHTML).
+  - Availability: Optimized DOM and 60fps GPU-accelerated composite layers for high uptime.
+-->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gian V. | Software Developer & Security</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#ef4444',
+                        cyan: '#06b6d4',
+                        bgDark: '#0a0a0a',
+                        panel: '#121212',
+                        hudBorder: 'rgba(255, 255, 255, 0.08)'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0a0a0a;
+            color: #d1d5db;
+            /* Subtle Grid Background */
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+            background-position: center center;
+            overflow-x: hidden;
+        }
+
+        /* HUD Corner Accents */
+        .hud-box {
+            position: relative;
+        }
+        .hud-box::before, .hud-box::after {
+            content: '';
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-color: #ef4444;
+            border-style: solid;
+            pointer-events: none;
+            z-index: 20;
+        }
+        .hud-box.cyan-accent::before, .hud-box.cyan-accent::after {
+            border-color: #06b6d4;
+        }
+        .hud-box::before {
+            top: -1px; left: -1px;
+            border-width: 2px 0 0 2px;
+        }
+        .hud-box::after {
+            bottom: -1px; right: -1px;
+            border-width: 0 2px 2px 0;
+        }
+
+        .hud-corner-br {
+            position: absolute;
+            bottom: -1px; left: -1px;
+            width: 10px; height: 10px;
+            border-color: inherit;
+            border-style: solid;
+            border-width: 0 0 2px 2px;
+            pointer-events: none;
+        }
+        
+        .hud-corner-tr {
+            position: absolute;
+            top: -1px; right: -1px;
+            width: 10px; height: 10px;
+            border-color: inherit;
+            border-style: solid;
+            border-width: 2px 2px 0 0;
+            pointer-events: none;
+        }
+
+        /* Scanline effect over cards */
+        .scanline {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
+            background-size: 100% 4px;
+            pointer-events: none;
+            opacity: 0.3;
+            border-radius: inherit;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #333; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ef4444; 
+        }
+
+        /* ==========================================
+           SWARM SCROLL ENGINE STYLES (NON-DESTRUCTIVE)
+           ========================================== */
+        #marquee-layer, #agent-layer {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+            transition: opacity 1.5s ease;
+        }
+        #marquee-layer { z-index: 9998; }
+        #agent-layer { z-index: 9999; }
+
+        .rect-build-target {
+            opacity: 0;
+            clip-path: inset(0% 100% 100% 0% round 8px);
+            will-change: clip-path, opacity;
+        }
+        .rect-build-target.built-complete {
+            opacity: 1 !important;
+            clip-path: none !important;
+        }
+
+        .tw-char {
+            opacity: 0;
+            display: inline;
+            transition: background-color 0.15s ease, color 0.15s ease;
+        }
+        .tw-char.typed {
+            opacity: 1;
+        }
+        .tw-char.just-typed {
+            background: rgba(6, 182, 212, 0.32);
+            color: #ffffff;
+            border-radius: 2px;
+        }
+
+        .marquee-box {
+            position: absolute;
+            top: 0; left: 0; width: 0; height: 0;
+            border: 1.5px solid var(--agent-color, #06b6d4);
+            background-color: var(--agent-bg, rgba(6, 182, 212, 0.08));
+            opacity: 0;
+            will-change: transform, width, height, opacity;
+            border-radius: 4px;
+            pointer-events: none;
+        }
+        body.show-wireframes .marquee-box {
+            opacity: 0.45 !important;
+            border-style: dashed;
+        }
+
+        .marquee-handle {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            background: #ffffff;
+            border: 1px solid var(--agent-color, #06b6d4);
+        }
+        .marquee-handle.tl { top: -3px; left: -3px; }
+        .marquee-handle.tr { top: -3px; right: -3px; }
+        .marquee-handle.bl { bottom: -3px; left: -3px; }
+        .marquee-handle.br { bottom: -3px; right: -3px; }
+
+        .marquee-label {
+            position: absolute;
+            top: -19px;
+            left: -1.5px;
+            background: var(--agent-color, #06b6d4);
+            color: #000000;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 1px 5px;
+            border-radius: 2px 2px 0 0;
+            white-space: nowrap;
+            letter-spacing: 0.02em;
+        }
+
+        .marquee-dims {
+            position: absolute;
+            bottom: -18px;
+            right: -1.5px;
+            background: rgba(10, 10, 10, 0.9);
+            border: 1px solid var(--agent-color, #06b6d4);
+            color: var(--agent-color, #06b6d4);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            padding: 0px 4px;
+            border-radius: 2px;
+            white-space: nowrap;
+        }
+
+        .swarm-cursor {
+            position: absolute;
+            top: 0; left: 0;
+            will-change: transform, opacity;
+            pointer-events: none;
+            transition: opacity 0.35s ease;
+        }
+        .swarm-cursor-pill {
+            position: absolute;
+            top: 18px;
+            left: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            font-weight: 700;
+            color: #050505;
+            padding: 2px 6px;
+            border-radius: 3px;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+            letter-spacing: 0.03em;
+        }
+
+        .faux-toolbar {
+            position: fixed;
+            bottom: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10000;
+            background: rgba(12, 12, 12, 0.92);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 8px;
+            padding: 7px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.75);
+            transition: opacity 1.5s ease, transform 1.5s ease;
+            max-width: 95vw;
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col font-sans">
+
+    <!-- Swarm Scroll Engine Overlay Layers -->
+    <div id="marquee-layer" aria-hidden="true"></div>
+    <div id="agent-layer" aria-hidden="true"></div>
+
+    <!-- Navbar / Top Panel -->
+    <header class="w-full border-b border-white/5 bg-bgDark/80 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <!-- Left: Logo & Status -->
+            <div class="flex items-center gap-4">
+                <h1 class="text-white font-black text-xl tracking-tighter uppercase">GIAN_V<span class="text-primary">.</span></h1>
+                <div class="flex items-center gap-2 border border-white/10 bg-black/50 rounded-full px-4 py-1.5 text-xs font-mono text-gray-400">
+                    <span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
+                    SEC_SYS: ONLINE
+                </div>
+            </div>
+
+            <!-- Right: Navigation -->
+            <nav>
+                <ul class="flex flex-wrap justify-center gap-4 md:gap-6 text-[10px] md:text-xs font-mono text-gray-500 uppercase tracking-widest">
+                    <li><a href="#hero" class="hover:text-white transition-colors cursor-pointer">01. Início</a></li>
+                    <li><a href="#about" class="hover:text-white transition-colors cursor-pointer">02. Sobre</a></li>
+                    <li><a href="#projects" class="hover:text-white transition-colors cursor-pointer">03. Projetos</a></li>
+                    <li><a href="#experience" class="hover:text-white transition-colors cursor-pointer">04. Exp</a></li>
+                    <li><a href="#education" class="hover:text-white transition-colors cursor-pointer">05. Formação</a></li>
+                    <li><a href="#certifications" class="hover:text-white transition-colors cursor-pointer">06. Certs</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow">
+        
+        <!-- 1. Hero Section wrapped in Sticky Hero Lock for Swarm Engine -->
+        <div id="hero-sticky-wrap" class="relative w-full" style="height: calc(100vh + 520px);">
+            <section id="hero" class="sticky top-16 max-w-7xl mx-auto px-6 py-16 lg:py-28 relative flex flex-col lg:flex-row items-center justify-between gap-12">
+                <div class="absolute top-6 right-6 text-[10px] font-mono text-gray-600 hidden md:block z-20">
+                    VIEWPORT_SYNC: ACTIVE • CIA_TRIAD: VERIFIED
+                </div>
+
+                <div class="flex flex-col items-start w-full lg:w-3/5 relative z-10">
+                    <div id="hero-badge" class="inline-block border border-cyan-500/30 bg-cyan-500/10 rounded px-3 py-1 mb-6 shadow-[0_0_10px_rgba(6,182,212,0.2)]">
+                        <span class="text-xs font-mono text-cyan-400 uppercase tracking-widest">
+                            <span class="text-white">01 //</span> IDENTIFICATION_LOG
+                        </span>
+                    </div>
+                    
+                    <h2 class="text-6xl md:text-8xl font-black text-white leading-[1.1] mb-4 uppercase tracking-tighter">
+                        GIAN V.
+                    </h2>
+                    
+                    <h3 class="text-xl md:text-3xl font-mono text-primary mb-10 uppercase tracking-tight font-bold">
+                        Software Developer <span class="text-gray-600">|</span> Security-First Coding <span class="text-gray-600">|</span> Cybersecurity Student
+                    </h3>
+                    
+                    <div class="flex flex-wrap gap-4">
+                        <a id="hero-cta" href="#about" class="bg-primary hover:bg-red-500 text-white font-bold py-3 px-6 rounded-md text-sm transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+                            INICIALIZAR VARREDURA <span class="font-mono">↘</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Right: Profile Picture (Desktop Only) -->
+                <div class="hidden lg:flex w-full lg:w-2/5 justify-center lg:justify-end relative z-10">
+                    <!-- Outer HUD rings -->
+                    <div id="hero-avatar-box" class="relative w-72 h-72 xl:w-[380px] xl:h-[380px] rounded-full border border-gray-600/30 p-3 flex items-center justify-center before:absolute before:inset-0 before:border-t-2 before:border-r-2 before:border-primary before:rounded-full before:animate-[spin_12s_linear_infinite] after:absolute after:inset-3 after:border-b-2 after:border-l-2 after:border-cyan-500 after:rounded-full after:animate-[spin_18s_linear_infinite_reverse]">
+                        <!-- Image Container -->
+                        <div class="w-full h-full rounded-full overflow-hidden border-4 border-bgDark bg-black relative z-10 shadow-[0_0_30px_rgba(0,0,0,0.8)] flex items-center justify-center">
+                            <img src="1793742229706.png" alt="Gian V." class="w-full h-full object-cover rounded-full grayscale hover:grayscale-0 transition-all duration-500" onerror="this.onerror=null; this.src='https://github.com/Gian-vie.png';">
+                            <div class="scanline rounded-full"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- 2. About Section -->
+        <section id="about" class="max-w-7xl mx-auto px-6 py-20 border-t border-white/5 relative">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                
+                <div class="lg:col-span-4">
+                    <span class="text-primary text-xs font-mono font-bold tracking-widest block mb-2">02 // PROFILE_DATA</span>
+                    <h2 class="text-3xl md:text-5xl font-black text-white uppercase tracking-tight">Sobre.</h2>
+                    <div class="mt-6 space-y-4 font-mono text-xs text-gray-500">
+                        <p>> STACK: PHP (Laravel), TypeScript (Vue/React)</p>
+                        <p>> FOCUS: Red Teaming, Web Pentesting</p>
+                        <p>> LOCATION: Bento Gonçalves, RS, Brasil</p>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-8 w-full relative">
+                    <div class="hud-box cyan-accent bg-panel border border-cyan-500/20 rounded-lg p-6 md:p-8 shadow-2xl relative">
+                        <div class="scanline"></div>
+                        <div class="flex items-center gap-2 mb-6 border-b border-white/10 pb-4">
+                            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                            <span class="text-gray-400 font-mono text-xs ml-2">cat profile.txt</span>
+                        </div>
+                        
+                        <div class="relative z-10 text-gray-300 font-mono text-sm md:text-base leading-relaxed space-y-6">
+                            <p>
+                                <span class="text-cyan-400">></span> Desenvolvedor Full Stack com foco em Segurança Ofensiva e Pesquisa de Vulnerabilidades.
+                            </p>
+                            <p>
+                                <span class="text-cyan-400">></span> Com base sólida no desenvolvimento de aplicações robustas utilizando PHP (Laravel) e TypeScript (Vue/React), minha trajetória é guiada pela mentalidade <strong class="text-white">Security-First</strong>. Acredito que o código de alta qualidade é, por definição, um código seguro. Por isso, aplico rigorosamente os pilares de Confidencialidade, Integridade e Disponibilidade em cada projeto que desenvolvo.
+                            </p>
+                            <p>
+                                <span class="text-cyan-400">></span> Atualmente, estou imergindo no ecossistema de Red Teaming e Web Pentesting. Utilizo minha experiência prática como desenvolvedor para realizar análises profundas na camada de aplicação, identificando vulnerabilidades e falhas de lógica que muitas vezes passam despercebidas em análises puramente superficiais.
+                            </p>
+                            <p>
+                                <span class="text-cyan-400">></span> Busco desafios onde eu possa unir o desenvolvimento de software à segurança ofensiva, contribuindo para a construção de ecossistemas digitais mais resilientes e protegidos.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Projects Section -->
+        <!-- CIA TRIAD Note: Repositories access -->
+        <section id="projects" class="max-w-7xl mx-auto px-6 py-20 border-t border-white/5 relative">
+            <div class="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                    <span class="text-purple-500 text-xs font-mono font-bold tracking-widest block mb-2">03 // CODE_REPOSITORIES</span>
+                    <h2 class="text-3xl md:text-5xl font-black text-white uppercase tracking-tight">Projetos.</h2>
+                </div>
+                <div class="border border-purple-500/30 px-4 py-2 rounded text-[10px] font-mono text-purple-400 uppercase tracking-widest bg-purple-500/10 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
+                    GIT_INDEX: ACTIVE
+                </div>
+            </div>
+
+            <!-- Project Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                
+                <!-- Project: Insetário Virtual -->
+                <div class="hud-box bg-black/40 border border-white/10 hover:border-blue-500/50 rounded-lg p-6 flex flex-col group transition-colors relative overflow-hidden">
+                    <div class="scanline group-hover:opacity-30"></div>
+                    <div class="flex justify-between items-start mb-4 relative z-10">
+                        <h3 class="text-xl font-bold text-white group-hover:text-blue-400 transition-colors">Insetário Virtual</h3>
+                        <span class="text-[10px] font-mono border border-blue-500/30 text-blue-400 px-2 py-1 bg-blue-500/10 rounded">INFRASTRUCTURE</span>
+                    </div>
+                    <p class="text-sm font-mono text-gray-400 mb-6 flex-grow relative z-10">
+                        Configuração completa de infraestrutura em servidor VPS, incluindo políticas de firewall e rotinas de deploy para a aplicação.
+                    </p>
+                    <div class="flex justify-between items-center relative z-10 mt-auto pt-4 border-t border-white/5">
+                        <div class="flex gap-2">
+                            <span class="text-[10px] text-gray-500 font-mono">>_ DEPLOY / VPS / FIREWALL</span>
+                        </div>
+                        <a href="https://github.com/Insetario-Virtual/insetario-virtual" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-white font-mono text-xs transition-colors flex items-center gap-1">
+                            SOURCE <span class="text-lg leading-none">↗</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Project: CTF-project -->
+                <div class="hud-box cyan-accent bg-black/40 border border-white/10 hover:border-cyan-500/50 rounded-lg p-6 flex flex-col group transition-colors relative overflow-hidden">
+                    <div class="scanline group-hover:opacity-30"></div>
+                    <div class="flex justify-between items-start mb-4 relative z-10">
+                        <h3 class="text-xl font-bold text-white group-hover:text-cyan-400 transition-colors">CTF-project</h3>
+                        <span class="text-[10px] font-mono border border-cyan-500/30 text-cyan-400 px-2 py-1 bg-cyan-500/10 rounded">SECURITY</span>
+                    </div>
+                    <p class="text-sm font-mono text-gray-400 mb-6 flex-grow relative z-10">
+                        Capture The Flag (CTF) repository. Ambientes deliberadamente vulneráveis para práticas de segurança ofensiva e exploração web.
+                    </p>
+                    <div class="flex justify-between items-center relative z-10 mt-auto pt-4 border-t border-white/5">
+                        <div class="flex gap-2">
+                            <span class="text-[10px] text-gray-500 font-mono">>_ EXPLOITATION</span>
+                        </div>
+                        <a href="https://github.com/Gian-vie/CTF-project" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-white font-mono text-xs transition-colors flex items-center gap-1">
+                            SOURCE <span class="text-lg leading-none">↗</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Project: IFRS-ADS -->
+                <div class="hud-box bg-black/40 border border-white/10 hover:border-green-500/50 rounded-lg p-6 flex flex-col group transition-colors relative overflow-hidden">
+                    <div class="scanline group-hover:opacity-30"></div>
+                    <div class="flex justify-between items-start mb-4 relative z-10">
+                        <h3 class="text-xl font-bold text-white group-hover:text-green-400 transition-colors">IFRS-ADS</h3>
+                        <span class="text-[10px] font-mono border border-green-500/30 text-green-400 px-2 py-1 bg-green-500/10 rounded">ACADEMIC</span>
+                    </div>
+                    <p class="text-sm font-mono text-gray-400 mb-6 flex-grow relative z-10">
+                        Repositório central para projetos, atividades e pesquisas desenvolvidas durante o curso de Análise e Desenvolvimento de Sistemas no IFRS.
+                    </p>
+                    <div class="flex justify-between items-center relative z-10 mt-auto pt-4 border-t border-white/5">
+                        <div class="flex gap-2">
+                            <span class="text-[10px] text-gray-500 font-mono">>_ FULL_STACK</span>
+                        </div>
+                        <a href="https://github.com/Gian-vie/IFRS-ADS" target="_blank" rel="noopener noreferrer" class="text-green-400 hover:text-white font-mono text-xs transition-colors flex items-center gap-1">
+                            SOURCE <span class="text-lg leading-none">↗</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Project: cpf_track -->
+                <div class="hud-box bg-black/40 border border-white/10 hover:border-red-500/50 rounded-lg p-6 flex flex-col group transition-colors relative overflow-hidden">
+                    <div class="scanline group-hover:opacity-30"></div>
+                    <div class="flex justify-between items-start mb-4 relative z-10">
+                        <h3 class="text-xl font-bold text-white group-hover:text-red-400 transition-colors">cpf_track</h3>
+                        <span class="text-[10px] font-mono border border-red-500/30 text-red-400 px-2 py-1 bg-red-500/10 rounded">TOOL</span>
+                    </div>
+                    <p class="text-sm font-mono text-gray-400 mb-6 flex-grow relative z-10">
+                        Ferramenta para validação e rastreio de informações públicas (OSINT). Foco em sanitização de dados e tratamento de requisições web.
+                    </p>
+                    <div class="flex justify-between items-center relative z-10 mt-auto pt-4 border-t border-white/5">
+                        <div class="flex gap-2">
+                            <span class="text-[10px] text-gray-500 font-mono">>_ OSINT</span>
+                        </div>
+                        <a href="https://github.com/Gian-vie/cpf_track" target="_blank" rel="noopener noreferrer" class="text-red-400 hover:text-white font-mono text-xs transition-colors flex items-center gap-1">
+                            SOURCE <span class="text-lg leading-none">↗</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Project: RPG-combat -->
+                <div class="hud-box bg-black/40 border border-white/10 hover:border-yellow-500/50 rounded-lg p-6 flex flex-col group transition-colors relative overflow-hidden">
+                    <div class="scanline group-hover:opacity-30"></div>
+                    <div class="flex justify-between items-start mb-4 relative z-10">
+                        <h3 class="text-xl font-bold text-white group-hover:text-yellow-400 transition-colors">RPG-combat</h3>
+                        <span class="text-[10px] font-mono border border-yellow-500/30 text-yellow-400 px-2 py-1 bg-yellow-500/10 rounded">GAME_DEV</span>
+                    </div>
+                    <p class="text-sm font-mono text-gray-400 mb-6 flex-grow relative z-10">
+                        Sistema de combate em turnos estilo RPG. Demonstra lógica de programação orientada a objetos, gerenciamento de estado e arquitetura de componentes.
+                    </p>
+                    <div class="flex justify-between items-center relative z-10 mt-auto pt-4 border-t border-white/5">
+                        <div class="flex gap-2">
+                            <span class="text-[10px] text-gray-500 font-mono">>_ LOGIC / OOP</span>
+                        </div>
+                        <a href="https://github.com/Gian-vie/RPG-combat" target="_blank" rel="noopener noreferrer" class="text-yellow-400 hover:text-white font-mono text-xs transition-colors flex items-center gap-1">
+                            SOURCE <span class="text-lg leading-none">↗</span>
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 4. Experience Section -->
+        <section id="experience" class="max-w-7xl mx-auto px-6 py-20 border-t border-white/5 relative">
+            <div class="mb-12">
+                <span class="text-yellow-500 text-xs font-mono font-bold tracking-widest block mb-2">04 // PROFESSIONAL_TIMELINE</span>
+                <h2 class="text-3xl md:text-5xl font-black text-white uppercase tracking-tight">Experiência.</h2>
+            </div>
+
+            <div class="space-y-4">
+                <!-- Job 1 -->
+                <div class="exp-card bg-[#111] border border-white/5 rounded-xl p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center gap-6 hover:border-yellow-500/50 transition-colors relative overflow-hidden group">
+                    <div class="scanline group-hover:opacity-20 transition-opacity"></div>
+                    
+                    <div class="px-3 py-1.5 border border-yellow-500/30 rounded text-yellow-500 font-mono text-xs whitespace-nowrap shrink-0 relative z-10 w-48 text-center bg-yellow-500/5">
+                        Dez 2025 — Presente
+                    </div>
+                    
+                    <div class="flex-grow relative z-10">
+                        <h3 class="text-lg md:text-xl font-bold text-white mb-1">Engenheiro de Software</h3>
+                        <p class="text-xs text-gray-400 font-mono uppercase tracking-wide">@ CENCICIA</p>
+                    </div>
+                    
+                    <div class="border border-white/10 text-gray-500 px-3 py-1 text-[10px] font-mono rounded shrink-0 relative z-10">
+                        Tempo Integral
+                    </div>
+                </div>
+
+                <!-- Job 2 -->
+                <div class="exp-card bg-[#111] border border-white/5 rounded-xl p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center gap-6 hover:border-yellow-500/50 transition-colors relative overflow-hidden group">
+                    <div class="scanline group-hover:opacity-20 transition-opacity"></div>
+                    
+                    <div class="px-3 py-1.5 border border-gray-600 rounded text-gray-400 font-mono text-xs whitespace-nowrap shrink-0 relative z-10 w-48 text-center bg-white/5">
+                        Jun 2025 — Dez 2025
+                    </div>
+                    
+                    <div class="flex-grow relative z-10">
+                        <h3 class="text-lg md:text-xl font-bold text-white mb-1">Desenvolvedor de Front-end</h3>
+                        <p class="text-xs text-gray-400 font-mono uppercase tracking-wide">@ Includer</p>
+                    </div>
+                    
+                    <div class="border border-white/10 text-gray-500 px-3 py-1 text-[10px] font-mono rounded shrink-0 relative z-10">
+                        7 meses
+                    </div>
+                </div>
+
+                <!-- Job 3 -->
+                <div class="exp-card bg-[#111] border border-white/5 rounded-xl p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center gap-6 hover:border-yellow-500/50 transition-colors relative overflow-hidden group">
+                    <div class="scanline group-hover:opacity-20 transition-opacity"></div>
+                    
+                    <div class="px-3 py-1.5 border border-gray-600 rounded text-gray-400 font-mono text-xs whitespace-nowrap shrink-0 relative z-10 w-48 text-center bg-white/5">
+                        Dez 2024 — Mai 2025
+                    </div>
+                    
+                    <div class="flex-grow relative z-10">
+                        <h3 class="text-lg md:text-xl font-bold text-white mb-1">Desenvolvedor React (Estágio)</h3>
+                        <p class="text-xs text-gray-400 font-mono uppercase tracking-wide">@ Compass UOL</p>
+                    </div>
+                    
+                    <div class="border border-white/10 text-gray-500 px-3 py-1 text-[10px] font-mono rounded shrink-0 relative z-10">
+                        6 meses
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. Education Section -->
+        <section id="education" class="max-w-7xl mx-auto px-6 py-20 border-t border-white/5 relative">
+            <div class="mb-12">
+                <span class="text-green-500 text-xs font-mono font-bold tracking-widest block mb-2">05 // ACADEMIC_RECORDS</span>
+                <h2 class="text-3xl md:text-5xl font-black text-white uppercase tracking-tight">Formação.</h2>
+            </div>
+
+            <div class="edu-card bg-gradient-to-r from-[#111] to-bgDark border border-green-500/20 rounded-xl p-6 md:p-10 relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                <!-- BG Glow -->
+                <div class="absolute top-0 right-0 w-64 h-64 bg-green-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                
+                <div class="relative z-10">
+                    <h3 class="text-2xl font-black text-white mb-2">Análise e Desenvolvimento de Sistemas</h3>
+                    <p class="text-sm font-mono text-green-400 uppercase tracking-widest mb-4">Instituto Federal de Educação, Ciência e Tecnologia do Rio Grande do Sul (IFRS)</p>
+                    <div class="flex gap-2">
+                        <span class="border border-white/10 bg-black/50 px-3 py-1 text-xs font-mono text-gray-400 rounded">Programação</span>
+                        <span class="border border-white/10 bg-black/50 px-3 py-1 text-xs font-mono text-gray-400 rounded">Desenvolvimento de Front-end</span>
+                    </div>
+                </div>
+
+                <div class="relative z-10 border border-green-500/40 bg-green-500/10 px-6 py-3 rounded text-green-400 font-mono text-sm text-center shrink-0 shadow-[0_0_15px_rgba(34,197,94,0.15)]">
+                    Fev 2024 — Presente
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. Certifications Section -->
+        <section id="certifications" class="max-w-7xl mx-auto px-6 py-20 border-t border-white/5 relative">
+            <div class="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                    <span class="text-blue-500 text-xs font-mono font-bold tracking-widest block mb-2">06 // CREDENTIALS_&_LICENSES</span>
+                    <h2 class="text-3xl md:text-5xl font-black text-white uppercase tracking-tight">Certificados.</h2>
+                </div>
+                <div class="border border-blue-500/30 px-4 py-2 rounded text-[10px] font-mono text-blue-400 uppercase tracking-widest bg-blue-500/10">
+                    VERIFIED_HASH_MATCH
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                
+                <!-- Cert 1: Cisco -->
+                <div class="hud-box bg-panel border border-white/10 hover:border-blue-500/50 rounded-lg overflow-hidden flex flex-col transition-all group">
+                    <div class="p-4 border-b border-white/5 flex justify-between items-center bg-black/40">
+                        <span class="text-[10px] font-mono text-blue-400">ISSUER // CISCO</span>
+                        <span class="text-[10px] font-mono text-gray-500">MAR_2026</span>
+                    </div>
+                    <div class="p-6 md:p-8 flex-grow flex flex-col justify-center relative">
+                        <div class="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <h3 class="text-xl md:text-2xl font-bold text-white mb-2 relative z-10">Introduction to Cybersecurity</h3>
+                        <p class="text-xs font-mono text-gray-400 mb-6 relative z-10">Competências: Cyber Best Practices, Cibersegurança, etc.</p>
+                        
+                        <div class="relative z-10 mt-auto">
+                            <a href="https://www.credly.com/badges/2ba706bb-517e-43a4-91c8-dbbd956ac348/linked_in_profile" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 border border-white/20 hover:border-blue-500 text-gray-300 hover:text-blue-400 text-xs font-mono px-4 py-2 rounded transition-colors">
+                                EXIBIR CREDENCIAL ↗
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cert 2: AWS -->
+                <div class="hud-box bg-panel border border-white/10 hover:border-[#ff9900]/50 rounded-lg overflow-hidden flex flex-col transition-all group">
+                    <div class="p-4 border-b border-white/5 flex justify-between items-center bg-black/40">
+                        <span class="text-[10px] font-mono text-[#ff9900]">ISSUER // AWS</span>
+                        <span class="text-[10px] font-mono text-gray-500">MAI_2025 — MAI_2028</span>
+                    </div>
+                    <div class="p-6 md:p-8 flex-grow flex flex-col justify-center relative">
+                        <div class="absolute inset-0 bg-[#ff9900]/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <h3 class="text-xl md:text-2xl font-bold text-white mb-2 relative z-10">AWS Certified Cloud Practitioner</h3>
+                        <p class="text-xs font-mono text-gray-400 mb-2 relative z-10">Amazon Web Services (AWS)</p>
+                        <p class="text-[10px] font-mono text-gray-600 mb-6 relative z-10 break-all">ID: 31dda890e38b4fcda657c4956863421b</p>
+                        
+                        <div class="relative z-10 mt-auto">
+                            <a href="https://cp.certmetrics.com/amazon/en/public/verify/credential" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 border border-white/20 hover:border-[#ff9900] text-gray-300 hover:text-[#ff9900] text-xs font-mono px-4 py-2 rounded transition-colors">
+                                EXIBIR CREDENCIAL ↗
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer / Terminal Contact -->
+    <footer class="bg-black border-t border-hudBorder mt-12 relative overflow-hidden">
+        <div class="scanline"></div>
+        <div class="max-w-4xl mx-auto p-8 relative z-10 font-mono text-sm md:text-base">
+            <div class="flex items-center gap-2 mb-6 border-b border-gray-800 pb-2">
+                <div class="flex gap-1.5">
+                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                </div>
+                <span class="text-gray-500 text-xs ml-2">gian_v@sec-terminal:~</span>
+            </div>
+
+            <div class="space-y-4">
+                <p class="text-gray-400"><span class="text-cyan-500">root@gian:~#</span> ./init_handshake.sh</p>
+                <p class="text-gray-300">> ESTABELECER CONEXÃO SEGURA...</p>
+                <p class="text-gray-500">> RESOLVENDO ENDEREÇOS...</p>
+                
+                <div class="pl-4 border-l border-gray-800 space-y-2 mt-4">
+                    <p class="text-gray-400">
+                        <span class="text-cyan-500">> execute</span> 
+                        <a href="https://www.linkedin.com/in/gian-v-354356205/" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 underline underline-offset-4 decoration-white/20 transition-colors">linkedin.sh</a>
+                    </p>
+                    <p class="text-gray-400">
+                        <span class="text-cyan-500">> execute</span> 
+                        <a href="https://github.com/Gian-vie" target="_blank" rel="noopener noreferrer" class="text-gray-300 hover:text-white underline underline-offset-4 decoration-white/20 transition-colors">github.sh</a>
+                    </p>
+                </div>
+                
+                <p class="text-gray-400 mt-6"><span class="text-cyan-500">root@gian:~#</span> <span class="animate-pulse text-white">_</span></p>
+            </div>
+            
+            <div class="mt-12 text-center text-[10px] text-gray-700">
+                <p>END OF FILE // SECURITY PROTOCOLS ENFORCED</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Floating Faux-UI Toolbar for Swarm Engine -->
+    <div id="faux-toolbar" class="faux-toolbar">
+        <div id="agent-avatars" class="flex -space-x-1.5"></div>
+        <span id="build-status" class="text-cyan-400 font-bold tracking-wider uppercase">Orbiting</span>
+        <span class="text-gray-700 hidden sm:inline">|</span>
+        <div class="hidden sm:flex items-center gap-1.5 text-gray-400">
+            <span id="layer-count" class="text-white font-bold">0</span>/<span id="total-layers">0</span>
+            <span class="text-[9px] text-gray-500">LAYERS</span>
+        </div>
+        <div id="progress-track" class="w-20 sm:w-28 h-1.5 bg-white/10 rounded-full overflow-hidden cursor-pointer relative" title="Pular para ponto de montagem">
+            <div id="progress-fill" class="h-full bg-gradient-to-r from-primary to-cyan-400 w-0"></div>
+        </div>
+        <button id="btn-autobuild" type="button" class="bg-primary/20 hover:bg-primary/40 border border-primary/50 text-white px-2.5 py-1 rounded text-[10px] uppercase tracking-wider flex items-center gap-1.5 transition-colors">
+            <span id="autobuild-dot" class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+            <span id="autobuild-label">Auto-Build</span>
+        </button>
+        <button id="btn-wireframes" type="button" class="hidden md:inline-block bg-white/5 hover:bg-white/15 border border-white/10 text-gray-300 px-2.5 py-1 rounded text-[10px] uppercase tracking-wider transition-colors">
+            Wireframes
+        </button>
+    </div>
+
+    <!-- ==========================================
+         SWARM SCROLL ENGINE CORE (ZERO XSS, 60FPS)
+         ========================================== -->
+    <script>
+        (function () {
+            'use strict';
+
+            // Immutable Agent Configurations (Rule 4.3)
+            const AGENT_CONFIGS = Object.freeze([
+                Object.freeze({ name: '0xGIAN_CORE', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.10)' }),
+                Object.freeze({ name: 'APPSEC_BOT',  color: '#06b6d4', bg: 'rgba(6, 182, 212, 0.10)' }),
+                Object.freeze({ name: 'RED_TEAM_01', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.10)' }),
+                Object.freeze({ name: 'LARAVEL_AST', color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.10)' }),
+                Object.freeze({ name: 'VUE_COMPILER',color: '#10b981', bg: 'rgba(16, 185, 129, 0.10)' }),
+                Object.freeze({ name: 'RECON_DAEMON',color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.10)' }),
+                Object.freeze({ name: 'GHIDRA_DECOMP',color:'#ec4899', bg: 'rgba(236, 72, 153, 0.10)' }),
+                Object.freeze({ name: 'CLOUD_GUARD', color: '#f97316', bg: 'rgba(249, 115, 22, 0.10)' })
+            ]);
+
+            const SVG_NS = 'http://www.w3.org/2000/svg';
+            const agentLayer = document.getElementById('agent-layer');
+            const marqueeLayer = document.getElementById('marquee-layer');
+            const toolbar = document.getElementById('faux-toolbar');
+            const statusBadge = document.getElementById('build-status');
+            const layerCountEl = document.getElementById('layer-count');
+            const totalLayersEl = document.getElementById('total-layers');
+            const progressFill = document.getElementById('progress-fill');
+            const progressTrack = document.getElementById('progress-track');
+            const btnAutoBuild = document.getElementById('btn-autobuild');
+            const btnWireframes = document.getElementById('btn-wireframes');
+            const autoBuildLabel = document.getElementById('autobuild-label');
+
+            let smoothedScrollY = window.scrollY || 0;
+            let maxScrollY = smoothedScrollY;
+            let isSiteComplete = false;
+            let isAutoBuilding = false;
+            let autoBuildRaf = null;
+
+            const agents = [];
+            const tasks = [];
+
+            // Math Helpers
+            function lerp(a, b, t) {
+                return a + (b - a) * t;
+            }
+            function clamp(v, min, max) {
+                return Math.max(min, Math.min(max, v));
+            }
+            function smoothstep(x) {
+                const t = clamp(x, 0, 1);
+                return t * t * (3 - 2 * t);
+            }
+
+            // Safe SVG Builder (Zero innerHTML - Rule 4.2)
+            function createCursorSVGs(color) {
+                // Arrow SVG
+                const arrowSvg = document.createElementNS(SVG_NS, 'svg');
+                arrowSvg.setAttribute('width', '20');
+                arrowSvg.setAttribute('height', '20');
+                arrowSvg.setAttribute('viewBox', '0 0 24 24');
+                arrowSvg.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.65))';
+
+                const poly = document.createElementNS(SVG_NS, 'polygon');
+                poly.setAttribute('points', '3,3 10,20 13,13 20,10');
+                poly.setAttribute('fill', color);
+                poly.setAttribute('stroke', '#000000');
+                poly.setAttribute('stroke-width', '1.5');
+                arrowSvg.appendChild(poly);
+
+                // I-Beam SVG
+                const ibeamSvg = document.createElementNS(SVG_NS, 'svg');
+                ibeamSvg.setAttribute('width', '20');
+                ibeamSvg.setAttribute('height', '20');
+                ibeamSvg.setAttribute('viewBox', '0 0 24 24');
+                ibeamSvg.style.display = 'none';
+                ibeamSvg.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.65))';
+
+                const path = document.createElementNS(SVG_NS, 'path');
+                path.setAttribute('d', 'M8,4 L16,4 M12,4 L12,20 M8,20 L16,20');
+                path.setAttribute('stroke', color);
+                path.setAttribute('stroke-width', '2.2');
+                path.setAttribute('stroke-linecap', 'round');
+                ibeamSvg.appendChild(path);
+
+                return { arrowSvg, ibeamSvg };
+            }
+
+            // Initialize 8 Autonomous Swarm Agents
+            function initAgents() {
+                const avatarWrap = document.getElementById('agent-avatars');
+                AGENT_CONFIGS.forEach((cfg, idx) => {
+                    // Toolbar avatar circle
+                    const av = document.createElement('div');
+                    av.className = 'w-5 h-5 rounded-full border border-black flex items-center justify-center text-[8px] font-bold text-black';
+                    av.style.backgroundColor = cfg.color;
+                    av.textContent = cfg.name.slice(0, 2);
+                    av.title = cfg.name;
+                    avatarWrap.appendChild(av);
+
+                    // Floating Cursor Node
+                    const cursorEl = document.createElement('div');
+                    cursorEl.className = 'swarm-cursor';
+
+                    const { arrowSvg, ibeamSvg } = createCursorSVGs(cfg.color);
+                    const pill = document.createElement('div');
+                    pill.className = 'swarm-cursor-pill';
+                    pill.style.backgroundColor = cfg.color;
+                    pill.textContent = cfg.name;
+
+                    cursorEl.appendChild(arrowSvg);
+                    cursorEl.appendChild(ibeamSvg);
+                    cursorEl.appendChild(pill);
+                    agentLayer.appendChild(cursorEl);
+
+                    agents.push({
+                        id: idx,
+                        cfg: cfg,
+                        el: cursorEl,
+                        arrowSvg: arrowSvg,
+                        ibeamSvg: ibeamSvg,
+                        pill: pill,
+                        x: window.innerWidth / 2,
+                        y: window.innerHeight / 2,
+                        tx: window.innerWidth / 2,
+                        ty: window.innerHeight / 2,
+                        mode: 'arrow',
+                        activeTask: null
+                    });
+                });
+            }
+
+            // Non-Destructive Text Node Wrapper for Typewriter Mode
+            function wrapTextNodes(rootEl) {
+                const chars = [];
+                const walker = document.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT, null, false);
+                const textNodes = [];
+                while (walker.nextNode()) {
+                    const node = walker.currentNode;
+                    if (node.nodeValue && node.nodeValue.trim().length > 0) {
+                        textNodes.push(node);
+                    }
+                }
+                textNodes.forEach(node => {
+                    const frag = document.createDocumentFragment();
+                    const text = node.nodeValue;
+                    for (let i = 0; i < text.length; i++) {
+                        const ch = text[i];
+                        if (ch === ' ' || ch === '\n' || ch === '\t') {
+                            frag.appendChild(document.createTextNode(ch));
+                        } else {
+                            const span = document.createElement('span');
+                            span.className = 'tw-char';
+                            span.textContent = ch;
+                            frag.appendChild(span);
+                            chars.push(span);
+                        }
+                    }
+                    node.parentNode.replaceChild(frag, node);
+                });
+                return chars;
+            }
+
+            // Create Figma-style Marquee Box using pure DOM APIs
+            function createMarqueeBox(cfg, labelStr) {
+                const box = document.createElement('div');
+                box.className = 'marquee-box';
+                box.style.setProperty('--agent-color', cfg.color);
+                box.style.setProperty('--agent-bg', cfg.bg);
+
+                ['tl', 'tr', 'bl', 'br'].forEach(pos => {
+                    const h = document.createElement('div');
+                    h.className = 'marquee-handle ' + pos;
+                    box.appendChild(h);
+                });
+
+                const label = document.createElement('div');
+                label.className = 'marquee-label';
+                label.textContent = labelStr;
+                box.appendChild(label);
+
+                const dims = document.createElement('div');
+                dims.className = 'marquee-dims';
+                dims.textContent = '0 × 0 px';
+                box.appendChild(dims);
+
+                marqueeLayer.appendChild(box);
+                return { box, label, dims };
+            }
+
+            // Scan & Register Portfolio Elements into Swarm Tasks
+            function registerPortfolioTasks() {
+                let agentCounter = 0;
+
+                // Helper to add a P1->P2 Rectangle Task
+                function addRectTask(el, labelStr, heroSlot) {
+                    if (!el) return;
+                    el.classList.add('rect-build-target');
+                    const cfg = AGENT_CONFIGS[agentCounter % AGENT_CONFIGS.length];
+                    const m = createMarqueeBox(cfg, labelStr);
+                    tasks.push({
+                        type: 'rect',
+                        el: el,
+                        agentId: agentCounter % AGENT_CONFIGS.length,
+                        heroSlot: heroSlot, // null if below fold
+                        marquee: m,
+                        labelBase: labelStr,
+                        completed: false
+                    });
+                    agentCounter++;
+                }
+
+                // Helper to add an I-Beam Typewriter Task
+                function addTextTask(el, heroSlot) {
+                    if (!el) return;
+                    const chars = wrapTextNodes(el);
+                    if (chars.length === 0) return;
+                    tasks.push({
+                        type: 'text',
+                        el: el,
+                        chars: chars,
+                        agentId: agentCounter % AGENT_CONFIGS.length,
+                        heroSlot: heroSlot,
+                        completed: false
+                    });
+                    agentCounter++;
+                }
+
+                // --- 01. HERO SECTION (Sticky Lock: 40px to 490px scroll) ---
+                addRectTask(document.getElementById('hero-badge'), 'div#hero-badge', { start: 35, end: 150 });
+                addTextTask(document.querySelector('#hero h2'), { start: 70, end: 230 });
+                addTextTask(document.querySelector('#hero h3'), { start: 140, end: 380 });
+                addRectTask(document.getElementById('hero-cta'), 'a#hero-cta.btn', { start: 260, end: 430 });
+                addRectTask(document.getElementById('hero-avatar-box'), 'div#hero-avatar.hud', { start: 90, end: 470 });
+
+                // --- 02. ABOUT SECTION ---
+                document.querySelectorAll('#about h2, #about .lg\\:col-span-4 p').forEach(el => addTextTask(el, null));
+                addRectTask(document.querySelector('#about .hud-box'), 'div.hud-box.profile', null);
+                document.querySelectorAll('#about .hud-box p').forEach(el => addTextTask(el, null));
+
+                // --- 03. PROJECTS SECTION ---
+                addTextTask(document.querySelector('#projects h2'), null);
+                document.querySelectorAll('#projects .hud-box').forEach((el, idx) => {
+                    addRectTask(el, 'div.hud-box.repo-0' + (idx + 1), null);
+                });
+
+                // --- 04. EXPERIENCE SECTION ---
+                addTextTask(document.querySelector('#experience h2'), null);
+                document.querySelectorAll('#experience .exp-card').forEach((el, idx) => {
+                    addRectTask(el, 'div.exp-node-0' + (idx + 1), null);
+                });
+
+                // --- 05. EDUCATION SECTION ---
+                addTextTask(document.querySelector('#education h2'), null);
+                addRectTask(document.querySelector('#education .edu-card'), 'div.edu-record.ifrs', null);
+
+                // --- 06. CERTIFICATIONS SECTION ---
+                addTextTask(document.querySelector('#certifications h2'), null);
+                document.querySelectorAll('#certifications .hud-box').forEach((el, idx) => {
+                    addRectTask(el, 'div.cert-hash-0' + (idx + 1), null);
+                });
+
+                // --- 07. FOOTER TERMINAL ---
+                addRectTask(document.querySelector('footer'), 'footer.sec-terminal', null);
+
+                totalLayersEl.textContent = String(tasks.length);
+            }
+
+            // Compute Local Progress t in [0, 1] for any task
+            function computeTaskProgress(task, rect, vh) {
+                if (task.completed) return 1;
+
+                // Sticky Hero tasks are driven by maxScrollY within the 520px lock window
+                if (task.heroSlot) {
+                    return clamp((maxScrollY - task.heroSlot.start) / (task.heroSlot.end - task.heroSlot.start), 0, 1);
+                }
+
+                // Scrollytelling below-the-fold tasks:
+                // Convert current element viewport top back to what its top was at maxScrollY
+                const scrollDelta = maxScrollY - window.scrollY;
+                const effectiveTop = rect.top - scrollDelta;
+
+                const startLine = vh * 0.88;
+                const endLine = vh * 0.42;
+                return clamp((startLine - effectiveTop) / (startLine - endLine), 0, 1);
+            }
+
+            // Main 60fps Animation Loop
+            function renderLoop(now) {
+                smoothedScrollY = lerp(smoothedScrollY, window.scrollY, 0.18);
+                maxScrollY = Math.max(maxScrollY, smoothedScrollY);
+
+                // If user scrolled to the very bottom of the page, ensure all tasks complete
+                const docMaxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+                const scrollFraction = clamp(maxScrollY / docMaxScroll, 0, 1);
+                const forceFinish = scrollFraction >= 0.985;
+
+                // Orbit factor: 1.0 at scrollY=0, smoothly blends to 0.0 over first 50px
+                const orbitBlend = 1 - smoothstep(maxScrollY / 50);
+
+                // Reset frame assignments
+                agents.forEach(ag => {
+                    ag.activeTask = null;
+                });
+
+                const vh = window.innerHeight;
+                const vw = window.innerWidth;
+                let completedCount = 0;
+
+                tasks.forEach(task => {
+                    const rect = task.el.getBoundingClientRect();
+
+                    // Hidden desktop elements on mobile (e.g. lg:flex profile avatar when on phone)
+                    if (rect.width === 0 && rect.height === 0) {
+                        task.completed = true;
+                        completedCount++;
+                        return;
+                    }
+
+                    let localT = forceFinish ? 1 : computeTaskProgress(task, rect, vh);
+
+                    if (localT >= 0.995 && !task.completed) {
+                        task.completed = true;
+                        localT = 1;
+                        if (task.type === 'rect') {
+                            task.el.classList.add('built-complete');
+                            task.el.style.opacity = '1';
+                            task.el.style.clipPath = 'none';
+                            task.marquee.box.style.opacity = '0';
+                        } else if (task.type === 'text') {
+                            task.chars.forEach(c => {
+                                c.classList.add('typed');
+                                c.classList.remove('just-typed');
+                            });
+                        }
+                    }
+
+                    if (task.completed) {
+                        completedCount++;
+                        if (task.type === 'rect' && document.body.classList.contains('show-wireframes')) {
+                            task.marquee.box.style.transform = `translate3d(${rect.left}px, ${rect.top}px, 0)`;
+                            task.marquee.box.style.width = `${rect.width}px`;
+                            task.marquee.box.style.height = `${rect.height}px`;
+                        }
+                        return;
+                    }
+
+                    // Active build state (0 < localT < 1)
+                    if (localT > 0.005) {
+                        const agent = agents[task.agentId];
+
+                        if (task.type === 'rect') {
+                            const dragT = smoothstep((localT - 0.06) / 0.94);
+                            const curW = rect.width * dragT;
+                            const curH = rect.height * dragT;
+                            const rightInset = ((1 - dragT) * 100).toFixed(2);
+                            const bottomInset = ((1 - dragT) * 100).toFixed(2);
+
+                            task.el.style.opacity = '1';
+                            task.el.style.clipPath = `inset(0% ${rightInset}% ${bottomInset}% 0% round 8px)`;
+
+                            // Update Marquee Selection Box P1 -> P2
+                            task.marquee.box.style.opacity = '1';
+                            task.marquee.box.style.transform = `translate3d(${rect.left}px, ${rect.top}px, 0)`;
+                            task.marquee.box.style.width = `${Math.max(4, curW)}px`;
+                            task.marquee.box.style.height = `${Math.max(4, curH)}px`;
+                            task.marquee.label.textContent = `${task.labelBase} • P1(${Math.round(rect.left)},${Math.round(rect.top)})`;
+                            task.marquee.dims.textContent = `${Math.round(curW)} × ${Math.round(curH)} px`;
+
+                            agent.activeTask = task;
+                            agent.mode = 'arrow';
+                            agent.tx = rect.left + curW;
+                            agent.ty = rect.top + curH;
+                        } else if (task.type === 'text') {
+                            const totalChars = task.chars.length;
+                            const targetIdx = Math.floor(localT * totalChars);
+                            let activeCharEl = null;
+
+                            for (let i = 0; i < totalChars; i++) {
+                                const chEl = task.chars[i];
+                                if (i <= targetIdx) {
+                                    chEl.classList.add('typed');
+                                    if (i === targetIdx) {
+                                        chEl.classList.add('just-typed');
+                                        activeCharEl = chEl;
+                                    } else {
+                                        chEl.classList.remove('just-typed');
+                                    }
+                                }
+                            }
+
+                            if (activeCharEl) {
+                                const cRect = activeCharEl.getBoundingClientRect();
+                                agent.activeTask = task;
+                                agent.mode = 'ibeam';
+                                agent.tx = cRect.right + 2;
+                                agent.ty = cRect.top + cRect.height * 0.5;
+                            }
+                        }
+                    }
+                });
+
+                // Update HUD Toolbar Metrics
+                const overallProgress = tasks.length > 0 ? completedCount / tasks.length : 1;
+                layerCountEl.textContent = String(completedCount);
+                progressFill.style.width = `${Math.round(overallProgress * 100)}%`;
+
+                if (!isSiteComplete) {
+                    if (orbitBlend > 0.6) {
+                        statusBadge.textContent = 'Orbiting';
+                    } else {
+                        statusBadge.textContent = 'Scrubbing';
+                    }
+                }
+
+                // Update Agent Cursor Trajectories (Standby Orbit <-> P1/P2 Active Work)
+                const orbitScale = Math.min(1, vw / 1280);
+                const centerX = vw * 0.5;
+                const centerY = vh * 0.46;
+
+                agents.forEach((ag, i) => {
+                    const phase = (i / agents.length) * Math.PI * 2;
+                    const rx = (220 + (i % 3) * 55) * orbitScale;
+                    const ry = (110 + (i % 2) * 45) * orbitScale;
+                    const speed = 0.0011 + (i % 3) * 0.0002;
+
+                    const orbitX = centerX + Math.cos(now * speed + phase) * rx;
+                    const orbitY = centerY + Math.sin(now * speed + phase) * ry;
+
+                    let targetX = ag.tx;
+                    let targetY = ag.ty;
+
+                    if (!ag.activeTask) {
+                        // Gentle patrol when waiting for next scroll block
+                        targetX = orbitX;
+                        targetY = orbitY;
+                        ag.mode = 'arrow';
+                    }
+
+                    // Blend between initial Standby Orbit and active task target
+                    const finalX = lerp(targetX, orbitX, orbitBlend);
+                    const finalY = lerp(targetY, orbitY, orbitBlend);
+
+                    ag.x = lerp(ag.x, finalX, 0.22);
+                    ag.y = lerp(ag.y, finalY, 0.22);
+
+                    ag.el.style.transform = `translate3d(${ag.x.toFixed(1)}px, ${ag.y.toFixed(1)}px, 0)`;
+
+                    if (ag.mode === 'ibeam') {
+                        ag.arrowSvg.style.display = 'none';
+                        ag.ibeamSvg.style.display = 'block';
+                    } else {
+                        ag.arrowSvg.style.display = 'block';
+                        ag.ibeamSvg.style.display = 'none';
+                    }
+                });
+
+                // Clean Exit at >= 99% completion (Rule 2.6)
+                if ((overallProgress >= 0.99 || forceFinish) && !isSiteComplete) {
+                    isSiteComplete = true;
+                    stopAutoBuild();
+
+                    // Ensure 100% of DOM is cleanly revealed
+                    tasks.forEach(t => {
+                        t.completed = true;
+                        if (t.type === 'rect') {
+                            t.el.classList.add('built-complete');
+                            t.el.style.opacity = '1';
+                            t.el.style.clipPath = 'none';
+                            t.marquee.box.style.opacity = '0';
+                        } else if (t.type === 'text') {
+                            t.chars.forEach(c => {
+                                c.classList.add('typed');
+                                c.classList.remove('just-typed');
+                            });
+                        }
+                    });
+
+                    layerCountEl.textContent = String(tasks.length);
+                    progressFill.style.width = '100%';
+                    statusBadge.textContent = 'Complete';
+                    statusBadge.classList.replace('text-cyan-400', 'text-green-400');
+
+                    agentLayer.style.opacity = '0';
+                    marqueeLayer.style.opacity = '0';
+                    setTimeout(() => {
+                        toolbar.style.opacity = '0';
+                        toolbar.style.transform = 'translate(-50%, 24px)';
+                        toolbar.style.pointerEvents = 'none';
+                    }, 900);
+                }
+
+                requestAnimationFrame(renderLoop);
+            }
+
+            // Showcase Auto-Build Mode
+            function stopAutoBuild() {
+                isAutoBuilding = false;
+                if (autoBuildRaf) {
+                    cancelAnimationFrame(autoBuildRaf);
+                    autoBuildRaf = null;
+                }
+                autoBuildLabel.textContent = 'Auto-Build';
+            }
+
+            function stepAutoBuild() {
+                if (!isAutoBuilding || isSiteComplete) {
+                    stopAutoBuild();
+                    return;
+                }
+                window.scrollBy(0, 18);
+                if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) {
+                    stopAutoBuild();
+                    return;
+                }
+                autoBuildRaf = requestAnimationFrame(stepAutoBuild);
+            }
+
+            btnAutoBuild.addEventListener('click', () => {
+                if (isSiteComplete) return;
+                if (isAutoBuilding) {
+                    stopAutoBuild();
+                } else {
+                    isAutoBuilding = true;
+                    autoBuildLabel.textContent = 'Building...';
+                    autoBuildRaf = requestAnimationFrame(stepAutoBuild);
+                }
+            });
+
+            // Cancel Auto-Build immediately on user wheel or touch
+            window.addEventListener('wheel', () => {
+                if (isAutoBuilding) stopAutoBuild();
+            }, { passive: true });
+            window.addEventListener('touchstart', () => {
+                if (isAutoBuilding) stopAutoBuild();
+            }, { passive: true });
+
+            // Toggle Wireframes Inspection Mode
+            btnWireframes.addEventListener('click', () => {
+                document.body.classList.toggle('show-wireframes');
+                btnWireframes.classList.toggle('text-cyan-400');
+                btnWireframes.classList.toggle('border-cyan-500/50');
+            });
+
+            // Clickable Progress Bar Jump
+            progressTrack.addEventListener('click', (e) => {
+                const rect = progressTrack.getBoundingClientRect();
+                const ratio = clamp((e.clientX - rect.left) / rect.width, 0, 1);
+                const targetY = ratio * (document.documentElement.scrollHeight - window.innerHeight);
+                window.scrollTo({ top: targetY, behavior: 'smooth' });
+            });
+
+            // Initialize on DOMContentLoaded
+            window.addEventListener('DOMContentLoaded', () => {
+                initAgents();
+                registerPortfolioTasks();
+                requestAnimationFrame(renderLoop);
+            });
+        })();
+    </script>
+</body>
+</html>
