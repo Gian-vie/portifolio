@@ -123,15 +123,28 @@
         /* ==========================================
            SWARM SCROLL ENGINE STYLES (NON-DESTRUCTIVE)
            ========================================== */
-        #marquee-layer, #agent-layer {
+        #standby-comets-layer {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 9993;
+            will-change: opacity;
+        }
+        #marquee-layer {
             position: fixed;
             inset: 0;
             pointer-events: none;
             overflow: hidden;
+            z-index: 9994;
             transition: opacity 1.5s ease;
         }
-        #marquee-layer { z-index: 9998; }
-        #agent-layer { z-index: 9999; }
+        /* Keep #agent-layer static so fixed .swarm-cursor children interleave z-index directly with #standby-nv-logo */
+        #agent-layer {
+            position: static;
+            pointer-events: none;
+        }
 
         /* Standby Central N_V HUD Logo */
         #standby-nv-logo {
@@ -139,9 +152,10 @@
             top: 46%;
             left: 50%;
             transform: translate(-50%, -50%);
-            z-index: 9997;
+            z-index: 9995;
             pointer-events: none;
             will-change: opacity, transform;
+            filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.95));
         }
 
         .rect-build-target {
@@ -225,11 +239,12 @@
         }
 
         .swarm-cursor {
-            position: absolute;
+            position: fixed;
             top: 0; left: 0;
+            z-index: 9999;
             will-change: transform, opacity;
             pointer-events: none;
-            transition: opacity 0.35s ease;
+            transition: opacity 1.2s ease;
         }
         .swarm-cursor-pill {
             position: absolute;
@@ -244,31 +259,73 @@
             white-space: nowrap;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
             letter-spacing: 0.03em;
+            opacity: 0;
+            will-change: opacity;
         }
 
         .faux-toolbar {
             position: fixed;
-            bottom: 14px;
+            bottom: 24px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 10000;
-            background: rgba(12, 12, 12, 0.92);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 8px;
-            padding: 7px 14px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.75);
-            transition: opacity 1.5s ease, transform 1.5s ease;
-            max-width: 95vw;
+            transition: opacity 1.2s ease, transform 1.2s ease;
+        }
+
+        @keyframes subtleFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(5px); }
+        }
+        .animate-subtle-float {
+            animation: subtleFloat 3.2s ease-in-out infinite;
+        }
+
+        /* ==========================================
+           HAKAI-STYLE HERO FULL-BLEED CONSTELLATION REVEAL
+           ========================================== */
+        #hero {
+            --spot-x: 50%;
+            --spot-y: 50%;
+            --spot-opacity: 0;
+        }
+
+        /* Faint ambient star chart base so the sky is subtly perceptible even before hover */
+        #hero-bg-base {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.14;
+        }
+
+        /* Spotlight-masked real constellation chart revealed on mouse movement */
+        #hero-bg-reveal {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 2;
+            opacity: var(--spot-opacity, 0);
+            transition: opacity 0.45s ease;
+            -webkit-mask-image: radial-gradient(430px circle at var(--spot-x, 50%) var(--spot-y, 50%), rgba(0,0,0,1) 0%, rgba(0,0,0,0.72) 45%, rgba(0,0,0,0.18) 72%, transparent 100%);
+            mask-image: radial-gradient(430px circle at var(--spot-x, 50%) var(--spot-y, 50%), rgba(0,0,0,1) 0%, rgba(0,0,0,0.72) 45%, rgba(0,0,0,0.18) 72%, transparent 100%);
+            will-change: opacity;
+        }
+
+        #hero-bg-glow {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            opacity: var(--spot-opacity, 0);
+            transition: opacity 0.45s ease;
+            background: radial-gradient(480px circle at var(--spot-x, 50%) var(--spot-y, 50%), rgba(6, 182, 212, 0.11), rgba(239, 68, 68, 0.06) 45%, transparent 80%);
         }
     </style>
 </head>
 <body class="antialiased min-h-screen flex flex-col font-sans">
+
+    <!-- Standby Comets Canvas Layer (Visible only during initial Standby Orbit) -->
+    <canvas id="standby-comets-layer" aria-hidden="true"></canvas>
 
     <!-- Standby Central N_V Logo Overlay (Visible at scrollY === 0) -->
     <div id="standby-nv-logo" aria-hidden="true">
@@ -310,43 +367,387 @@
     <!-- Main Content -->
     <main class="flex-grow">
         
-        <!-- 1. Hero Section wrapped in Sticky Hero Lock for Swarm Engine -->
-        <div id="hero-sticky-wrap" class="relative w-full" style="height: calc(100vh + 520px);">
-            <section id="hero" class="sticky top-16 max-w-7xl mx-auto px-6 py-16 lg:py-28 relative flex flex-col lg:flex-row items-center justify-between gap-12">
-                <div class="absolute top-6 right-6 text-[10px] font-mono text-gray-600 hidden md:block z-20">
-                    VIEWPORT_SYNC: ACTIVE • CIA_TRIAD: VERIFIED
+        <!-- 1. Hero Section wrapped in Sticky Hero Lock for Swarm Engine (Full Horizontal Width & Increased Height) -->
+        <div id="hero-sticky-wrap" class="relative w-full">
+            <section id="hero" class="sticky top-16 w-full min-h-[88vh] lg:min-h-[92vh] py-28 lg:py-40 relative flex items-center overflow-hidden border-b border-white/5">
+                <!-- Interactive Spotlight Glow -->
+                <div id="hero-bg-glow" aria-hidden="true"></div>
+
+                <!-- Subtle Base Star Chart (Always faintly visible at 14% opacity) -->
+                <div id="hero-bg-base" aria-hidden="true">
+                    <svg class="w-full h-full object-cover" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M 0,620 Q 960,410 1920,560" fill="none" stroke="#06b6d4" stroke-width="0.7" stroke-dasharray="4 8" stroke-opacity="0.4"/>
+                        <path d="M 0,480 L 1920,480" fill="none" stroke="#ffffff" stroke-width="0.5" stroke-dasharray="2 10" stroke-opacity="0.25"/>
+                        <g fill="#ffffff" fill-opacity="0.45">
+                            <circle cx="240" cy="180" r="1.2"/><circle cx="790" cy="495" r="1.5"/><circle cx="885" cy="615" r="1.5"/>
+                            <circle cx="1010" cy="705" r="2"/><circle cx="1430" cy="740" r="1.4"/><circle cx="1555" cy="240" r="1.5"/>
+                            <circle cx="1220" cy="220" r="1.3"/><circle cx="620" cy="390" r="1.4"/><circle cx="480" cy="820" r="1.1"/>
+                        </g>
+                    </svg>
                 </div>
 
-                <div class="flex flex-col items-start w-full lg:w-3/5 relative z-10">
-                    <div id="hero-badge" class="inline-block border border-cyan-500/30 bg-cyan-500/10 rounded px-3 py-1 mb-6 shadow-[0_0_10px_rgba(6,182,212,0.2)]">
-                        <span class="text-xs font-mono text-cyan-400 uppercase tracking-widest">
-                            <span class="text-white">01 //</span> IDENTIFICATION_LOG
-                        </span>
+                <!-- Non-Repeating Full-Bleed Real Astronomical Constellation Map (Revealed by Spotlight) -->
+                <div id="hero-bg-reveal" aria-hidden="true">
+                    <svg class="w-full h-full object-cover" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <radialGradient id="nebula-m42" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#ef4444" stop-opacity="0.28"/>
+                                <stop offset="45%" stop-color="#06b6d4" stop-opacity="0.12"/>
+                                <stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/>
+                            </radialGradient>
+                            <radialGradient id="nebula-cygnus" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.16"/>
+                                <stop offset="60%" stop-color="#a855f7" stop-opacity="0.06"/>
+                                <stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/>
+                            </radialGradient>
+                            <radialGradient id="nebula-antares" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#ef4444" stop-opacity="0.22"/>
+                                <stop offset="100%" stop-color="#ef4444" stop-opacity="0"/>
+                            </radialGradient>
+                        </defs>
+
+                        <!-- CELESTIAL EQUATOR, ECLIPTIC ARC & ASTROMETRIC GRID -->
+                        <g fill="none">
+                            <!-- Celestial Equator (DEC 00° 00') -->
+                            <path d="M 0,535 L 1920,535" stroke="#ffffff" stroke-width="0.6" stroke-dasharray="3 9" stroke-opacity="0.22"/>
+                            <!-- Ecliptic Sine Curve -->
+                            <path d="M 0,680 Q 480,350 960,510 T 1920,410" stroke="#06b6d4" stroke-width="0.85" stroke-dasharray="6 8" stroke-opacity="0.32"/>
+                            <!-- Galactic Plane Reference Arc -->
+                            <path d="M 140,0 Q 940,560 1760,1080" stroke="#ef4444" stroke-width="0.65" stroke-dasharray="2 8" stroke-opacity="0.25"/>
+                            <!-- Right Ascension Meridians -->
+                            <path d="M 380,0 V 1080 M 820,0 V 1080 M 1280,0 V 1080 M 1680,0 V 1080" stroke="#ffffff" stroke-width="0.4" stroke-dasharray="2 14" stroke-opacity="0.14"/>
+                        </g>
+
+                        <!-- ASTROMETRIC HUD COORDINATE TELEMETRY -->
+                        <g font-family="JetBrains Mono, monospace" font-size="9" fill="#06b6d4" fill-opacity="0.45" letter-spacing="1.5">
+                            <text x="28" y="528">DEC 00°00' // CELESTIAL_EQUATOR</text>
+                            <text x="1710" y="528">RA 05h 35m // J2000.0</text>
+                            <text x="388" y="28">RA 18h</text>
+                            <text x="828" y="28">RA 06h</text>
+                            <text x="1288" y="28">RA 12h</text>
+                            <text x="1688" y="28">RA 16h</text>
+                        </g>
+
+                        <!-- =====================================================
+                             1. CASSIOPEIA (Upper Left - Classic 'W' Asterism)
+                             ===================================================== -->
+                        <g id="constellation-cassiopeia">
+                            <polyline points="155,145 215,205 275,172 338,225 405,168" fill="none" stroke="#06b6d4" stroke-width="1.1" stroke-opacity="0.65"/>
+                            <circle cx="155" cy="145" r="2.6" fill="#ffffff"/> <!-- Caph (Beta Cas) -->
+                            <circle cx="215" cy="205" r="3.2" fill="#ef4444"/> <!-- Schedar (Alpha Cas) -->
+                            <circle cx="215" cy="205" r="6.5" fill="none" stroke="#ef4444" stroke-width="0.7" stroke-opacity="0.55"/>
+                            <circle cx="275" cy="172" r="2.8" fill="#06b6d4"/> <!-- Gamma Cas -->
+                            <circle cx="338" cy="225" r="2.5" fill="#ffffff"/> <!-- Ruchbah (Delta Cas) -->
+                            <circle cx="405" cy="168" r="2.1" fill="#06b6d4"/> <!-- Segin (Epsilon Cas) -->
+                            <text x="210" y="232" font-family="JetBrains Mono, monospace" font-size="9.5" fill="#06b6d4" fill-opacity="0.65" letter-spacing="1.5">CASSIOPEIA // α SCHEDAR</text>
+                        </g>
+
+                        <!-- =====================================================
+                             2. CYGNUS / NORTHERN CROSS (Mid-Left)
+                             ===================================================== -->
+                        <g id="constellation-cygnus">
+                            <circle cx="295" cy="495" r="68" fill="url(#nebula-cygnus)"/>
+                            <!-- Spine: Deneb -> Sadr -> Albireo -->
+                            <line x1="235" y1="435" x2="295" y2="495" stroke="#06b6d4" stroke-width="1.15" stroke-opacity="0.68"/>
+                            <line x1="295" y1="495" x2="395" y2="595" stroke="#06b6d4" stroke-width="1.15" stroke-opacity="0.68"/>
+                            <!-- Wings: Delta Cyg -> Sadr -> Gienah -->
+                            <polyline points="205,555 295,495 375,425" fill="none" stroke="#06b6d4" stroke-width="1.05" stroke-opacity="0.62"/>
+                            <line x1="155" y1="585" x2="205" y2="555" stroke="#06b6d4" stroke-width="0.8" stroke-dasharray="3 3" stroke-opacity="0.5"/>
+                            <line x1="375" y1="425" x2="425" y2="395" stroke="#06b6d4" stroke-width="0.8" stroke-dasharray="3 3" stroke-opacity="0.5"/>
+
+                            <!-- Deneb (Alpha Cygni - Supergiant) -->
+                            <circle cx="235" cy="435" r="3.8" fill="#ffffff"/>
+                            <circle cx="235" cy="435" r="8" fill="none" stroke="#06b6d4" stroke-width="0.8" stroke-opacity="0.65"/>
+                            <path d="M235,422 V448 M222,435 H248" stroke="#06b6d4" stroke-width="0.7" stroke-opacity="0.7"/>
+                            <!-- Sadr (Gamma Cygni) -->
+                            <circle cx="295" cy="495" r="3.0" fill="#06b6d4"/>
+                            <!-- Albireo (Beta Cygni - Double Star) -->
+                            <circle cx="395" cy="595" r="2.7" fill="#ef4444"/>
+                            <circle cx="399" cy="592" r="1.5" fill="#06b6d4"/>
+                            <!-- Wing stars -->
+                            <circle cx="205" cy="555" r="2.3" fill="#ffffff"/>
+                            <circle cx="375" cy="425" r="2.5" fill="#ffffff"/>
+                            <circle cx="155" cy="585" r="1.7" fill="#06b6d4"/>
+                            <circle cx="425" cy="395" r="1.7" fill="#06b6d4"/>
+                            <text x="175" y="415" font-family="JetBrains Mono, monospace" font-size="9.5" fill="#06b6d4" fill-opacity="0.65" letter-spacing="1.5">CYGNUS // α DENEB</text>
+                        </g>
+
+                        <!-- =====================================================
+                             3. TAURUS & PLEIADES M45 (Center-Left)
+                             ===================================================== -->
+                        <g id="constellation-taurus">
+                            <!-- Hyades V-shape & Horns (Elnath & Tianguan) -->
+                            <polyline points="545,270 638,372 672,402 645,428 525,355" fill="none" stroke="#06b6d4" stroke-width="1.05" stroke-opacity="0.58"/>
+                            <line x1="672" y1="402" x2="718" y2="442" stroke="#06b6d4" stroke-width="0.9" stroke-opacity="0.5"/>
+                            <!-- Aldebaran (Alpha Tauri - Red Giant) -->
+                            <circle cx="645" cy="428" r="3.8" fill="#ef4444"/>
+                            <circle cx="645" cy="428" r="8" fill="none" stroke="#ef4444" stroke-width="0.8" stroke-dasharray="2 2" stroke-opacity="0.75"/>
+                            <!-- Elnath (Beta Tauri) & Tianguan (Zeta Tauri) -->
+                            <circle cx="545" cy="270" r="2.8" fill="#06b6d4"/>
+                            <circle cx="525" cy="355" r="2.4" fill="#ffffff"/>
+                            <circle cx="638" cy="372" r="2.0" fill="#ffffff"/>
+                            <circle cx="672" cy="402" r="2.1" fill="#ffffff"/>
+                            <circle cx="718" cy="442" r="2.0" fill="#06b6d4"/>
+
+                            <!-- M45 Pleiades Open Cluster -->
+                            <g transform="translate(568, 438)">
+                                <circle cx="0" cy="0" r="16" fill="none" stroke="#06b6d4" stroke-width="0.6" stroke-dasharray="2 3" stroke-opacity="0.55"/>
+                                <circle cx="-5" cy="-4" r="1.6" fill="#06b6d4"/>
+                                <circle cx="2" cy="-6" r="1.4" fill="#ffffff"/>
+                                <circle cx="6" cy="-1" r="1.8" fill="#06b6d4"/>
+                                <circle cx="-2" cy="3" r="1.5" fill="#ffffff"/>
+                                <circle cx="4" cy="5" r="1.3" fill="#06b6d4"/>
+                                <circle cx="-8" cy="2" r="1.2" fill="#ffffff"/>
+                                <text x="-22" y="26" font-family="JetBrains Mono, monospace" font-size="8" fill="#06b6d4" fill-opacity="0.55">M45_PLEIADES</text>
+                            </g>
+                            <text x="630" y="452" font-family="JetBrains Mono, monospace" font-size="9.5" fill="#ef4444" fill-opacity="0.75" letter-spacing="1.5">TAURUS // α ALDEBARAN</text>
+                        </g>
+
+                        <!-- =====================================================
+                             4. ORION THE HUNTER (Center Focal Constellation)
+                             ===================================================== -->
+                        <g id="constellation-orion">
+                            <!-- Orion Nebula M42 Glow -->
+                            <circle cx="842" cy="602" r="52" fill="url(#nebula-m42)"/>
+
+                            <!-- Main Body Frame: Betelgeuse -> Meissa -> Bellatrix -> Mintaka -> Rigel -> Saiph -> Alnitak -> Betelgeuse -->
+                            <polygon points="790,485 832,442 878,498 855,562 888,635 805,648 825,574" fill="none" stroke="#06b6d4" stroke-width="1.15" stroke-opacity="0.65"/>
+                            <!-- Orion's Belt: Alnitak - Alnilam - Mintaka -->
+                            <polyline points="825,574 840,568 855,562" fill="none" stroke="#ffffff" stroke-width="1.35" stroke-opacity="0.85"/>
+                            <!-- Orion's Shield / Bow -->
+                            <polyline points="878,498 928,482 936,508 932,538 918,564" fill="none" stroke="#06b6d4" stroke-width="0.85" stroke-dasharray="3 3" stroke-opacity="0.52"/>
+                            <!-- Sword hanging from Belt (M42) -->
+                            <line x1="840" y1="568" x2="842" y2="606" stroke="#ef4444" stroke-width="0.9" stroke-opacity="0.7"/>
+
+                            <!-- Betelgeuse (Alpha Orionis - Red Supergiant) -->
+                            <circle cx="790" cy="485" r="4.4" fill="#ef4444"/>
+                            <circle cx="790" cy="485" r="9.5" fill="none" stroke="#ef4444" stroke-width="0.9" stroke-opacity="0.75"/>
+                            <path d="M790,471 V499 M776,485 H804" stroke="#ef4444" stroke-width="0.75" stroke-opacity="0.8"/>
+
+                            <!-- Rigel (Beta Orionis - Blue Supergiant) -->
+                            <circle cx="888" cy="635" r="4.2" fill="#06b6d4"/>
+                            <circle cx="888" cy="635" r="9" fill="none" stroke="#06b6d4" stroke-width="0.85" stroke-opacity="0.75"/>
+                            <path d="M888,622 V648 M875,635 H901" stroke="#06b6d4" stroke-width="0.75" stroke-opacity="0.8"/>
+
+                            <!-- Meissa (Lambda), Bellatrix (Gamma), Saiph (Kappa) -->
+                            <circle cx="832" cy="442" r="2.2" fill="#06b6d4"/>
+                            <circle cx="878" cy="498" r="3.0" fill="#ffffff"/>
+                            <circle cx="805" cy="648" r="2.8" fill="#06b6d4"/>
+
+                            <!-- Belt Stars: Alnitak, Alnilam, Mintaka -->
+                            <circle cx="825" cy="574" r="2.6" fill="#06b6d4"/>
+                            <circle cx="840" cy="568" r="2.8" fill="#ffffff"/>
+                            <circle cx="855" cy="562" r="2.5" fill="#06b6d4"/>
+
+                            <!-- M42 Orion Nebula Reticle -->
+                            <circle cx="842" cy="602" r="4.5" fill="none" stroke="#ef4444" stroke-width="0.8" stroke-dasharray="2 2"/>
+                            <circle cx="842" cy="602" r="1.8" fill="#ef4444"/>
+
+                            <!-- Shield Stars -->
+                            <circle cx="928" cy="482" r="1.5" fill="#ffffff"/>
+                            <circle cx="936" cy="508" r="1.7" fill="#06b6d4"/>
+                            <circle cx="932" cy="538" r="1.6" fill="#ffffff"/>
+                            <circle cx="918" cy="564" r="1.4" fill="#06b6d4"/>
+
+                            <text x="720" y="468" font-family="JetBrains Mono, monospace" font-size="9.5" fill="#ef4444" fill-opacity="0.8" letter-spacing="1.5">α BETELGEUSE</text>
+                            <text x="898" y="655" font-family="JetBrains Mono, monospace" font-size="9.5" fill="#06b6d4" fill-opacity="0.8" letter-spacing="1.5">ORION // β RIGEL</text>
+                        </g>
+
+                        <!-- =====================================================
+                             5. CANIS MAJOR & SIRIUS (Lower Center)
+                             ===================================================== -->
+                        <g id="constellation-canis-major">
+                            <!-- Pointer line from Orion's Belt through Sirius -->
+                            <line x1="825" y1="574" x2="1012" y2="718" stroke="#06b6d4" stroke-width="0.6" stroke-dasharray="2 6" stroke-opacity="0.38"/>
+
+                            <!-- Canis Major stick figure -->
+                            <polyline points="1042,732 1012,718 982,788 955,818" fill="none" stroke="#06b6d4" stroke-width="1.1" stroke-opacity="0.62"/>
+                            <polyline points="1012,718 996,765 982,788 1018,808" fill="none" stroke="#06b6d4" stroke-width="1.0" stroke-opacity="0.55"/>
+
+                            <!-- Sirius (Alpha Canis Majoris - Brightest Star in the Night Sky) -->
+                            <circle cx="1012" cy="718" r="5.2" fill="#ffffff"/>
+                            <circle cx="1012" cy="718" r="12" fill="none" stroke="#06b6d4" stroke-width="1.0" stroke-opacity="0.8"/>
+                            <circle cx="1012" cy="718" r="19" fill="none" stroke="#06b6d4" stroke-width="0.5" stroke-dasharray="3 4" stroke-opacity="0.45"/>
+                            <!-- Diffraction Spikes -->
+                            <path d="M1012,692 V744 M986,718 H1038 M1000,706 L1024,730 M1024,706 L1000,730" stroke="#ffffff" stroke-width="0.85" stroke-opacity="0.85"/>
+
+                            <!-- Mirzam, Wezen, Adhara, Aludra -->
+                            <circle cx="1042" cy="732" r="2.6" fill="#06b6d4"/> <!-- Mirzam -->
+                            <circle cx="982" cy="788" r="2.9" fill="#ffffff"/>  <!-- Wezen -->
+                            <circle cx="1018" cy="808" r="3.1" fill="#06b6d4"/> <!-- Adhara -->
+                            <circle cx="955" cy="818" r="2.4" fill="#06b6d4"/>  <!-- Aludra -->
+                            <circle cx="996" cy="765" r="2.0" fill="#ffffff"/>
+
+                            <text x="1035" y="712" font-family="JetBrains Mono, monospace" font-size="10" fill="#ffffff" fill-opacity="0.85" letter-spacing="1.5">CANIS MAJOR // α SIRIUS (-1.46m)</text>
+                        </g>
+
+                        <!-- =====================================================
+                             6. URSA MAJOR / BIG DIPPER (Upper Center-Right)
+                             ===================================================== -->
+                        <g id="constellation-ursa-major">
+                            <!-- Plough Bowl & Handle: Dubhe -> Merak -> Phecda -> Megrez -> Alioth -> Mizar -> Alkaid -->
+                            <polyline points="1085,172 1098,228 1178,236 1188,186 1085,172" fill="none" stroke="#06b6d4" stroke-width="1.15" stroke-opacity="0.65"/>
+                            <polyline points="1188,186 1255,198 1312,188 1382,218" fill="none" stroke="#06b6d4" stroke-width="1.2" stroke-opacity="0.68"/>
+
+                            <circle cx="1085" cy="172" r="3.2" fill="#ef4444"/> <!-- Dubhe (Alpha UMa) -->
+                            <circle cx="1085" cy="172" r="7" fill="none" stroke="#ef4444" stroke-width="0.7" stroke-opacity="0.55"/>
+                            <circle cx="1098" cy="228" r="2.8" fill="#06b6d4"/> <!-- Merak (Beta UMa) -->
+                            <circle cx="1178" cy="236" r="2.7" fill="#ffffff"/> <!-- Phecda (Gamma UMa) -->
+                            <circle cx="1188" cy="186" r="2.2" fill="#06b6d4"/> <!-- Megrez (Delta UMa) -->
+                            <circle cx="1255" cy="198" r="3.3" fill="#ffffff"/> <!-- Alioth (Epsilon UMa) -->
+                            <circle cx="1312" cy="188" r="2.9" fill="#06b6d4"/> <!-- Mizar (Zeta UMa) -->
+                            <circle cx="1316" cy="183" r="1.4" fill="#ffffff"/> <!-- Alcor (Binary companion) -->
+                            <circle cx="1382" cy="218" r="3.1" fill="#06b6d4"/> <!-- Alkaid (Eta UMa) -->
+
+                            <text x="1085" y="152" font-family="JetBrains Mono, monospace" font-size="9.5" fill="#06b6d4" fill-opacity="0.65" letter-spacing="1.5">URSA MAJOR // α DUBHE — ζ MIZAR</text>
+                        </g>
+
+                        <!-- =====================================================
+                             7. SCORPIUS & ANTARES (Upper/Mid Right)
+                             ===================================================== -->
+                        <g id="constellation-scorpius">
+                            <!-- Antares Nebula Glow -->
+                            <circle cx="1548" cy="392" r="56" fill="url(#nebula-antares)"/>
+
+                            <!-- Claws: Graffias, Dschubba, Pi Sco -->
+                            <polyline points="1465,305 1548,392" fill="none" stroke="#06b6d4" stroke-width="1.1" stroke-opacity="0.62"/>
+                            <polyline points="1450,348 1502,368 1548,392" fill="none" stroke="#06b6d4" stroke-width="1.1" stroke-opacity="0.62"/>
+                            <polyline points="1468,395 1502,368" fill="none" stroke="#06b6d4" stroke-width="0.95" stroke-opacity="0.55"/>
+
+                            <!-- Scorpion Tail & Stinger: Antares -> Tau -> Epsilon -> Zeta -> Eta -> Sargas -> Shaula -> Lesath -->
+                            <polyline points="1548,392 1582,425 1618,478 1648,542 1682,585 1742,572 1775,528 1752,492 1738,498" fill="none" stroke="#06b6d4" stroke-width="1.2" stroke-opacity="0.68"/>
+
+                            <!-- Antares (Alpha Scorpii - Red Supergiant Heart of the Scorpion) -->
+                            <circle cx="1548" cy="392" r="4.5" fill="#ef4444"/>
+                            <circle cx="1548" cy="392" r="10" fill="none" stroke="#ef4444" stroke-width="0.95" stroke-opacity="0.8"/>
+                            <path d="M1548,376 V408 M1532,392 H1564" stroke="#ef4444" stroke-width="0.8" stroke-opacity="0.85"/>
+
+                            <!-- Claw & Tail Stars -->
+                            <circle cx="1465" cy="305" r="2.6" fill="#06b6d4"/> <!-- Graffias (Beta Sco) -->
+                            <circle cx="1450" cy="348" r="2.8" fill="#ffffff"/> <!-- Dschubba (Delta Sco) -->
+                            <circle cx="1468" cy="395" r="2.4" fill="#06b6d4"/> <!-- Pi Sco -->
+                            <circle cx="1502" cy="368" r="2.2" fill="#ffffff"/> <!-- Sigma Sco -->
+                            <circle cx="1582" cy="425" r="2.3" fill="#06b6d4"/> <!-- Tau Sco -->
+                            <circle cx="1618" cy="478" r="2.8" fill="#ffffff"/> <!-- Epsilon Sco -->
+                            <circle cx="1648" cy="542" r="2.4" fill="#06b6d4"/> <!-- Zeta Sco -->
+                            <circle cx="1682" cy="585" r="2.5" fill="#ffffff"/> <!-- Eta Sco -->
+                            <circle cx="1742" cy="572" r="3.1" fill="#06b6d4"/> <!-- Sargas (Theta Sco) -->
+                            <circle cx="1775" cy="528" r="2.3" fill="#ffffff"/> <!-- Iota Sco -->
+                            <circle cx="1752" cy="492" r="3.3" fill="#06b6d4"/> <!-- Shaula (Lambda Sco) -->
+                            <circle cx="1738" cy="498" r="2.4" fill="#ffffff"/> <!-- Lesath (Upsilon Sco) -->
+
+                            <text x="1564" y="384" font-family="JetBrains Mono, monospace" font-size="9.5" fill="#ef4444" fill-opacity="0.85" letter-spacing="1.5">SCORPIUS // α ANTARES</text>
+                        </g>
+
+                        <!-- =====================================================
+                             8. CRUX / SOUTHERN CROSS & ALPHA/BETA CENTAURI (Lower Right)
+                             ===================================================== -->
+                        <g id="constellation-crux">
+                            <!-- Southern Cross Axes: Gacrux (top) -> Acrux (bottom), Mimosa (left) -> Imai (right) -->
+                            <line x1="1385" y1="695" x2="1398" y2="812" stroke="#06b6d4" stroke-width="1.35" stroke-opacity="0.82"/>
+                            <line x1="1342" y1="742" x2="1436" y2="756" stroke="#06b6d4" stroke-width="1.35" stroke-opacity="0.82"/>
+
+                            <!-- Pointer Line from Alpha & Beta Centauri to Crux -->
+                            <polyline points="1612,795 1528,772 1392,754" fill="none" stroke="#ef4444" stroke-width="0.75" stroke-dasharray="3 5" stroke-opacity="0.5"/>
+
+                            <!-- Acrux (Alpha Crucis - Bottom Star) -->
+                            <circle cx="1398" cy="812" r="4.0" fill="#06b6d4"/>
+                            <circle cx="1398" cy="812" r="8.5" fill="none" stroke="#06b6d4" stroke-width="0.85" stroke-opacity="0.75"/>
+                            <!-- Mimosa (Beta Crucis - Left Star) -->
+                            <circle cx="1342" cy="742" r="3.5" fill="#ffffff"/>
+                            <!-- Gacrux (Gamma Crucis - Top Red Giant) -->
+                            <circle cx="1385" cy="695" r="3.4" fill="#ef4444"/>
+                            <!-- Imai (Delta Crucis - Right Star) -->
+                            <circle cx="1436" cy="756" r="2.8" fill="#06b6d4"/>
+                            <!-- Intrometida (Epsilon Crucis - 5th Star) -->
+                            <circle cx="1414" cy="776" r="2.1" fill="#ef4444"/>
+
+                            <!-- Alpha Centauri (Rigil Kentaurus) & Beta Centauri (Hadar) -->
+                            <circle cx="1612" cy="795" r="4.2" fill="#ffffff"/>
+                            <circle cx="1612" cy="795" r="9" fill="none" stroke="#ef4444" stroke-width="0.8" stroke-opacity="0.65"/>
+                            <circle cx="1528" cy="772" r="3.6" fill="#06b6d4"/>
+
+                            <text x="1335" y="838" font-family="JetBrains Mono, monospace" font-size="9.5" fill="#06b6d4" fill-opacity="0.8" letter-spacing="1.5">CRUX // α ACRUX (SOUTHERN CROSS)</text>
+                            <text x="1532" y="818" font-family="JetBrains Mono, monospace" font-size="8.5" fill="#ef4444" fill-opacity="0.7" letter-spacing="1.2">α &amp; β CENTAURI</text>
+                        </g>
+
+                        <!-- =====================================================
+                             9. SPARSE OCCASIONAL FIELD STARS (Uncluttered Deep Sky)
+                             ===================================================== -->
+                        <g fill="#ffffff" fill-opacity="0.5">
+                            <circle cx="88" cy="92" r="1.1"/>
+                            <circle cx="118" cy="312" r="1.3" fill="#06b6d4"/>
+                            <circle cx="72" cy="745" r="1.2"/>
+                            <circle cx="195" cy="885" r="1.4" fill="#ef4444"/>
+                            <circle cx="342" cy="812" r="1.0"/>
+                            <circle cx="465" cy="118" r="1.2" fill="#06b6d4"/>
+                            <circle cx="485" cy="642" r="1.1"/>
+                            <circle cx="592" cy="895" r="1.3"/>
+                            <circle cx="712" cy="165" r="1.2"/>
+                            <circle cx="748" cy="295" r="1.0" fill="#06b6d4"/>
+                            <circle cx="728" cy="790" r="1.4"/>
+                            <circle cx="892" cy="128" r="1.1"/>
+                            <circle cx="945" cy="318" r="1.3" fill="#ef4444"/>
+                            <circle cx="1065" cy="435" r="1.1"/>
+                            <circle cx="1142" cy="595" r="1.2" fill="#06b6d4"/>
+                            <circle cx="1185" cy="895" r="1.0"/>
+                            <circle cx="1245" cy="395" r="1.3"/>
+                            <circle cx="1295" cy="542" r="1.1" fill="#06b6d4"/>
+                            <circle cx="1445" cy="112" r="1.4"/>
+                            <circle cx="1595" cy="148" r="1.1" fill="#06b6d4"/>
+                            <circle cx="1690" cy="242" r="1.2"/>
+                            <circle cx="1825" cy="185" r="1.3" fill="#ef4444"/>
+                            <circle cx="1855" cy="385" r="1.0"/>
+                            <circle cx="1840" cy="685" r="1.4" fill="#06b6d4"/>
+                            <circle cx="1765" cy="895" r="1.2"/>
+                            <circle cx="1485" cy="935" r="1.1"/>
+                        </g>
+                    </svg>
+                </div>
+
+                <!-- Top-Right Telemetry Status -->
+                <div class="absolute top-6 right-6 md:top-8 md:right-10 z-30 flex flex-col items-end gap-1 pointer-events-none">
+                    <div class="text-[10px] font-mono text-gray-500 hidden md:block">
+                        VIEWPORT_SYNC: ACTIVE • CIA_TRIAD: VERIFIED
                     </div>
-                    
-                    <h2 class="text-6xl md:text-8xl font-black text-white leading-[1.1] mb-4 uppercase tracking-tighter">
-                        GIAN V.
-                    </h2>
-                    
-                    <h3 class="text-xl md:text-3xl font-mono text-primary mb-10 uppercase tracking-tight font-bold">
-                        Software Developer <span class="text-gray-600">|</span> Security-First Coding <span class="text-gray-600">|</span> Cybersecurity Student
-                    </h3>
-                    
-                    <div class="flex flex-wrap gap-4">
-                        <a id="hero-cta" href="#about" class="bg-primary hover:bg-red-500 text-white font-bold py-3 px-6 rounded-md text-sm transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(239,68,68,0.3)]">
-                            INICIALIZAR VARREDURA <span class="font-mono">↘</span>
-                        </a>
+                    <div class="text-[9px] font-mono text-cyan-500/60 hidden sm:block tracking-widest">
+                        ASTROMETRY_MAP // J2000.0 REAL_SKY
                     </div>
                 </div>
 
-                <!-- Right: Profile Picture (Desktop Only) -->
-                <div class="hidden lg:flex w-full lg:w-2/5 justify-center lg:justify-end relative z-10">
-                    <!-- Outer HUD rings -->
-                    <div id="hero-avatar-box" class="relative w-72 h-72 xl:w-[380px] xl:h-[380px] rounded-full border border-gray-600/30 p-3 flex items-center justify-center before:absolute before:inset-0 before:border-t-2 before:border-r-2 before:border-primary before:rounded-full before:animate-[spin_12s_linear_infinite] after:absolute after:inset-3 after:border-b-2 after:border-l-2 after:border-cyan-500 after:rounded-full after:animate-[spin_18s_linear_infinite_reverse]">
-                        <!-- Image Container -->
-                        <div class="w-full h-full rounded-full overflow-hidden border-4 border-bgDark bg-black relative z-10 shadow-[0_0_30px_rgba(0,0,0,0.8)] flex items-center justify-center">
-                            <img src="1793742229706.png" alt="Gian V." class="w-full h-full object-cover rounded-full grayscale hover:grayscale-0 transition-all duration-500" onerror="this.onerror=null; this.src='https://github.com/Gian-vie.png';">
-                            <div class="scanline rounded-full"></div>
+                <!-- Centered Inner Content Container -->
+                <div class="max-w-7xl mx-auto px-6 w-full relative z-10 flex flex-col lg:flex-row items-center justify-between gap-12">
+                    <div class="flex flex-col items-start w-full lg:w-3/5 relative z-10">
+                        <div id="hero-badge" class="inline-block border border-cyan-500/30 bg-cyan-500/10 rounded px-3 py-1 mb-6 shadow-[0_0_10px_rgba(6,182,212,0.2)]">
+                            <span class="text-xs font-mono text-cyan-400 uppercase tracking-widest">
+                                <span class="text-white">01 //</span> IDENTIFICATION_LOG
+                            </span>
+                        </div>
+                        
+                        <h2 class="text-6xl md:text-8xl font-black text-white leading-[1.1] mb-4 uppercase tracking-tighter">
+                            GIAN V.
+                        </h2>
+                        
+                        <h3 class="text-xl md:text-3xl font-mono text-primary mb-10 uppercase tracking-tight font-bold">
+                            Software Developer <span class="text-gray-600">|</span> Security-First Coding <span class="text-gray-600">|</span> Cybersecurity Student
+                        </h3>
+                        
+                        <div class="flex flex-wrap gap-4">
+                            <a id="hero-cta" href="#about" class="bg-primary hover:bg-red-500 text-white font-bold py-3 px-6 rounded-md text-sm transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+                                INICIALIZAR VARREDURA <span class="font-mono">↘</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Right: Profile Picture (Desktop Only) -->
+                    <div class="hidden lg:flex w-full lg:w-2/5 justify-center lg:justify-end relative z-10">
+                        <!-- Outer HUD rings -->
+                        <div id="hero-avatar-box" class="relative w-72 h-72 xl:w-[380px] xl:h-[380px] rounded-full border border-gray-600/30 p-3 flex items-center justify-center before:absolute before:inset-0 before:border-t-2 before:border-r-2 before:border-primary before:rounded-full before:animate-[spin_12s_linear_infinite] after:absolute after:inset-3 after:border-b-2 after:border-l-2 after:border-cyan-500 after:rounded-full after:animate-[spin_18s_linear_infinite_reverse]">
+                            <!-- Image Container -->
+                            <div class="w-full h-full rounded-full overflow-hidden border-4 border-bgDark bg-black relative z-10 shadow-[0_0_30px_rgba(0,0,0,0.8)] flex items-center justify-center">
+                                <img src="1793742229706.png" alt="Gian V." class="w-full h-full object-cover rounded-full grayscale hover:grayscale-0 transition-all duration-500" onerror="this.onerror=null; this.src='https://github.com/Gian-vie.png';">
+                                <div class="scanline rounded-full"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -702,24 +1103,18 @@
         </div>
     </footer>
 
-    <!-- Floating Faux-UI Toolbar for Swarm Engine -->
+    <!-- Discreet, Soft Scroll-Down & Auto-Build Indicator -->
     <div id="faux-toolbar" class="faux-toolbar">
-        <div id="agent-avatars" class="flex -space-x-1.5"></div>
-        <span id="build-status" class="text-cyan-400 font-bold tracking-wider uppercase">Orbiting</span>
-        <span class="text-gray-700 hidden sm:inline">|</span>
-        <div class="hidden sm:flex items-center gap-1.5 text-gray-400">
-            <span id="layer-count" class="text-white font-bold">0</span>/<span id="total-layers">0</span>
-            <span class="text-[9px] text-gray-500">LAYERS</span>
-        </div>
-        <div id="progress-track" class="w-20 sm:w-28 h-1.5 bg-white/10 rounded-full overflow-hidden cursor-pointer relative" title="Pular para ponto de montagem">
-            <div id="progress-fill" class="h-full bg-gradient-to-r from-primary to-cyan-400 w-0"></div>
-        </div>
-        <button id="btn-autobuild" type="button" class="bg-primary/20 hover:bg-primary/40 border border-primary/50 text-white px-2.5 py-1 rounded text-[10px] uppercase tracking-wider flex items-center gap-1.5 transition-colors">
-            <span id="autobuild-dot" class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-            <span id="autobuild-label">Auto-Build</span>
-        </button>
-        <button id="btn-wireframes" type="button" class="hidden md:inline-block bg-white/5 hover:bg-white/15 border border-white/10 text-gray-300 px-2.5 py-1 rounded text-[10px] uppercase tracking-wider transition-colors">
-            Wireframes
+        <button id="btn-autobuild" type="button" class="group flex flex-col items-center gap-1.5 px-4 py-2 opacity-40 hover:opacity-90 transition-all duration-500 cursor-pointer focus:outline-none" title="Iniciar rolagem automática">
+            <span id="autobuild-label" class="text-[9px] font-mono tracking-[0.25em] text-gray-500/80 group-hover:text-gray-300 uppercase transition-colors">scroll</span>
+            <div class="animate-subtle-float flex flex-col items-center -space-y-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-500/70 group-hover:text-cyan-400/80 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.25">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-400 group-hover:text-cyan-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.25">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+            </div>
         </button>
     </div>
 
@@ -749,19 +1144,21 @@
             ]);
 
             const SVG_NS = 'http://www.w3.org/2000/svg';
+            const cometsCanvas = document.getElementById('standby-comets-layer');
+            const cometsCtx = cometsCanvas ? cometsCanvas.getContext('2d') : null;
             const standbyLogo = document.getElementById('standby-nv-logo');
             const agentLayer = document.getElementById('agent-layer');
             const marqueeLayer = document.getElementById('marquee-layer');
             const toolbar = document.getElementById('faux-toolbar');
-            const statusBadge = document.getElementById('build-status');
-            const layerCountEl = document.getElementById('layer-count');
-            const totalLayersEl = document.getElementById('total-layers');
-            const progressFill = document.getElementById('progress-fill');
-            const progressTrack = document.getElementById('progress-track');
             const btnAutoBuild = document.getElementById('btn-autobuild');
-            const btnWireframes = document.getElementById('btn-wireframes');
             const autoBuildLabel = document.getElementById('autobuild-label');
+            const heroStickyWrap = document.getElementById('hero-sticky-wrap');
+            const heroEl = document.getElementById('hero');
 
+            const HERO_LOCK_BUFFER = 480;
+            let heroLockCollapsed = false;
+            let collapsedDeltaH = 0;
+            let standbyDismissed = false;
             let smoothedScrollY = window.scrollY || 0;
             let maxScrollY = smoothedScrollY;
             let isSiteComplete = false;
@@ -770,6 +1167,136 @@
 
             const agents = [];
             const tasks = [];
+            const activeComets = [];
+            let nextCometSpawnAt = performance.now() + 4500 + Math.random() * 4000;
+
+            function resizeCometsCanvas() {
+                if (!cometsCanvas) return;
+                const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                cometsCanvas.width = window.innerWidth * dpr;
+                cometsCanvas.height = window.innerHeight * dpr;
+                if (cometsCtx) {
+                    cometsCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                }
+            }
+
+            function spawnStandbyComet(now) {
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+                // Angle between 20° and 36° (streaking from top-left/mid-top toward bottom-right, or mirrored)
+                const dir = Math.random() < 0.78 ? 1 : -1;
+                const deg = 20 + Math.random() * 16;
+                const rad = deg * (Math.PI / 180);
+                const vx = Math.cos(rad) * dir;
+                const vy = Math.sin(rad);
+
+                const startX = dir === 1
+                    ? (Math.random() * vw * 0.85 - vw * 0.1)
+                    : (vw * 0.25 + Math.random() * vw * 0.85);
+                const startY = Math.random() * vh * 0.45;
+
+                const speed = 880 + Math.random() * 520; // px per second
+                const duration = 650 + Math.random() * 480; // ms
+                const tailLength = 135 + Math.random() * 115;
+                const isRedAccent = Math.random() < 0.26;
+
+                activeComets.push({
+                    x: startX,
+                    y: startY,
+                    vx: vx,
+                    vy: vy,
+                    speed: speed,
+                    tailLength: tailLength,
+                    headRadius: 1.6 + Math.random() * 0.7,
+                    bornAt: now,
+                    duration: duration,
+                    colorRgb: isRedAccent ? '239, 68, 68' : '6, 182, 212'
+                });
+            }
+
+            function updateAndRenderComets(now, orbitBlend) {
+                if (!cometsCanvas || !cometsCtx) return;
+
+                if (standbyDismissed || isSiteComplete || orbitBlend <= 0.01) {
+                    if (cometsCanvas.style.display !== 'none') {
+                        cometsCanvas.style.opacity = '0';
+                        cometsCanvas.style.display = 'none';
+                        activeComets.length = 0;
+                    }
+                    return;
+                }
+
+                cometsCanvas.style.display = 'block';
+                cometsCanvas.style.opacity = orbitBlend.toFixed(3);
+                cometsCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+                if (now >= nextCometSpawnAt && activeComets.length === 0) {
+                    spawnStandbyComet(now);
+                    nextCometSpawnAt = now + 9000 + Math.random() * 9000;
+                }
+
+                for (let i = activeComets.length - 1; i >= 0; i--) {
+                    const c = activeComets[i];
+                    const elapsed = now - c.bornAt;
+                    if (elapsed < 0) continue;
+
+                    const progress = elapsed / c.duration;
+                    if (progress >= 1) {
+                        activeComets.splice(i, 1);
+                        continue;
+                    }
+
+                    // Smooth fade-in and atmospheric burn-out envelope
+                    const alpha = Math.sin(progress * Math.PI) * 0.9;
+                    const dist = (elapsed / 1000) * c.speed;
+                    const curX = c.x + c.vx * dist;
+                    const curY = c.y + c.vy * dist;
+                    const currentTail = c.tailLength * Math.sin(Math.min(1, progress * 1.35) * (Math.PI * 0.5));
+                    const tailX = curX - c.vx * currentTail;
+                    const tailY = curY - c.vy * currentTail;
+
+                    // Tapered glowing tail
+                    const grad = cometsCtx.createLinearGradient(curX, curY, tailX, tailY);
+                    grad.addColorStop(0, `rgba(255, 255, 255, ${(alpha * 0.95).toFixed(3)})`);
+                    grad.addColorStop(0.22, `rgba(${c.colorRgb}, ${(alpha * 0.65).toFixed(3)})`);
+                    grad.addColorStop(1, `rgba(${c.colorRgb}, 0)`);
+
+                    cometsCtx.save();
+                    cometsCtx.beginPath();
+                    cometsCtx.moveTo(curX, curY);
+                    cometsCtx.lineTo(tailX, tailY);
+                    cometsCtx.strokeStyle = grad;
+                    cometsCtx.lineWidth = c.headRadius * 1.15;
+                    cometsCtx.lineCap = 'round';
+                    cometsCtx.stroke();
+
+                    // Glowing comet head
+                    const headGlow = cometsCtx.createRadialGradient(curX, curY, 0, curX, curY, c.headRadius * 5.5);
+                    headGlow.addColorStop(0, `rgba(255, 255, 255, ${alpha.toFixed(3)})`);
+                    headGlow.addColorStop(0.4, `rgba(${c.colorRgb}, ${(alpha * 0.55).toFixed(3)})`);
+                    headGlow.addColorStop(1, `rgba(${c.colorRgb}, 0)`);
+
+                    cometsCtx.fillStyle = headGlow;
+                    cometsCtx.beginPath();
+                    cometsCtx.arc(curX, curY, c.headRadius * 5.5, 0, Math.PI * 2);
+                    cometsCtx.fill();
+
+                    cometsCtx.fillStyle = `rgba(255, 255, 255, ${alpha.toFixed(3)})`;
+                    cometsCtx.beginPath();
+                    cometsCtx.arc(curX, curY, c.headRadius, 0, Math.PI * 2);
+                    cometsCtx.fill();
+                    cometsCtx.restore();
+                }
+            }
+
+            function syncHeroStickyHeight() {
+                if (!heroLockCollapsed && heroStickyWrap && heroEl) {
+                    heroStickyWrap.style.height = (heroEl.offsetHeight + HERO_LOCK_BUFFER) + 'px';
+                }
+                resizeCometsCanvas();
+            }
+
+            window.addEventListener('resize', syncHeroStickyHeight, { passive: true });
 
             // Math Helpers
             function lerp(a, b, t) {
@@ -819,16 +1346,7 @@
 
             // Initialize 8 Autonomous Swarm Agents
             function initAgents() {
-                const avatarWrap = document.getElementById('agent-avatars');
                 AGENT_CONFIGS.forEach((cfg, idx) => {
-                    // Toolbar avatar circle
-                    const av = document.createElement('div');
-                    av.className = 'w-5 h-5 rounded-full border border-black flex items-center justify-center text-[8px] font-bold text-black';
-                    av.style.backgroundColor = cfg.color;
-                    av.textContent = cfg.name.slice(0, 2);
-                    av.title = cfg.name;
-                    avatarWrap.appendChild(av);
-
                     // Floating Cursor Node
                     const cursorEl = document.createElement('div');
                     cursorEl.className = 'swarm-cursor';
@@ -993,12 +1511,10 @@
 
                 // --- 07. FOOTER TERMINAL ---
                 addRectTask(document.querySelector('footer'), 'footer.sec-terminal', null);
-
-                totalLayersEl.textContent = String(tasks.length);
             }
 
             // Compute Local Progress t in [0, 1] for any task
-            function computeTaskProgress(task, rect, vh) {
+            function computeTaskProgress(task, rect, vh, currentVirtualScrollY) {
                 if (task.completed) return 1;
 
                 // Sticky Hero tasks are driven by maxScrollY within the 520px lock window
@@ -1008,7 +1524,7 @@
 
                 // Scrollytelling below-the-fold tasks:
                 // Convert current element viewport top back to what its top was at maxScrollY
-                const scrollDelta = maxScrollY - window.scrollY;
+                const scrollDelta = maxScrollY - currentVirtualScrollY;
                 const effectiveTop = rect.top - scrollDelta;
 
                 const startLine = vh * 0.88;
@@ -1018,19 +1534,34 @@
 
             // Main 60fps Animation Loop
             function renderLoop(now) {
-                smoothedScrollY = lerp(smoothedScrollY, window.scrollY, 0.18);
+                const currentVirtualScrollY = window.scrollY + (heroLockCollapsed ? collapsedDeltaH : 0);
+                smoothedScrollY = lerp(smoothedScrollY, currentVirtualScrollY, 0.18);
                 maxScrollY = Math.max(maxScrollY, smoothedScrollY);
 
                 // If user scrolled to the very bottom of the page, ensure all tasks complete
-                const docMaxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+                const totalVirtualScrollHeight = document.documentElement.scrollHeight + (heroLockCollapsed ? collapsedDeltaH : 0);
+                const docMaxScroll = Math.max(1, totalVirtualScrollHeight - window.innerHeight);
                 const scrollFraction = clamp(maxScrollY / docMaxScroll, 0, 1);
                 const forceFinish = scrollFraction >= 0.985;
 
-                // Orbit factor: 1.0 at scrollY=0, smoothly blends to 0.0 over first 50px
-                const orbitBlend = 1 - smoothstep(maxScrollY / 50);
+                // Latch standbyDismissed permanently once scroll passes 50px so N_V never flickers back
+                if (maxScrollY >= 50 && !standbyDismissed) {
+                    standbyDismissed = true;
+                    if (standbyLogo) {
+                        standbyLogo.style.opacity = '0';
+                        standbyLogo.style.visibility = 'hidden';
+                        standbyLogo.style.display = 'none';
+                    }
+                }
+
+                // Orbit factor: 1.0 at scrollY=0, smoothly blends to 0.0 over first 50px, permanently 0 once dismissed
+                const orbitBlend = standbyDismissed ? 0 : (1 - smoothstep(maxScrollY / 50));
+
+                // Render occasional shooting stars / comets exclusively during Standby Orbit mode
+                updateAndRenderComets(now, orbitBlend);
 
                 // Fade & scale out central N_V standby logo as soon as scrolling begins
-                if (standbyLogo) {
+                if (standbyLogo && !standbyDismissed) {
                     if (isSiteComplete || orbitBlend <= 0.005) {
                         standbyLogo.style.opacity = '0';
                         standbyLogo.style.visibility = 'hidden';
@@ -1061,7 +1592,7 @@
                         return;
                     }
 
-                    let localT = forceFinish ? 1 : computeTaskProgress(task, rect, vh);
+                    let localT = forceFinish ? 1 : computeTaskProgress(task, rect, vh, currentVirtualScrollY);
 
                     if (localT >= 0.995 && !task.completed) {
                         task.completed = true;
@@ -1144,14 +1675,56 @@
                     }
                 });
 
-                // Update HUD Toolbar Metrics
+                // Collapse Sticky Hero Lock buffer seamlessly once Hero tasks are done & user reaches #about
+                if (!heroLockCollapsed && heroStickyWrap && heroEl && window.scrollY >= HERO_LOCK_BUFFER) {
+                    const allHeroDone = tasks.every(t => !t.heroSlot || t.completed);
+                    if (allHeroDone) {
+                        const prevWrapHeight = heroStickyWrap.offsetHeight;
+                        const currentY = window.scrollY;
+                        heroLockCollapsed = true;
+                        standbyDismissed = true;
+                        if (standbyLogo) {
+                            standbyLogo.style.display = 'none';
+                        }
+
+                        heroStickyWrap.style.height = 'auto';
+                        heroEl.classList.remove('sticky', 'top-16');
+
+                        const newWrapHeight = heroStickyWrap.offsetHeight;
+                        const deltaH = Math.max(0, prevWrapHeight - newWrapHeight);
+                        collapsedDeltaH = deltaH;
+
+                        if (deltaH > 0) {
+                            const htmlEl = document.documentElement;
+                            htmlEl.classList.remove('scroll-smooth');
+                            htmlEl.style.scrollBehavior = 'auto';
+                            window.scrollTo(0, Math.max(0, currentY - deltaH));
+                            // Force layout reflow so instant scroll jump settles in the same frame
+                            void htmlEl.offsetHeight;
+                            htmlEl.style.scrollBehavior = '';
+                            htmlEl.classList.add('scroll-smooth');
+                        }
+                    }
+                }
+
+                // Compute overall completion progress
                 const overallProgress = tasks.length > 0 ? completedCount / tasks.length : 1;
-                layerCountEl.textContent = String(completedCount);
-                progressFill.style.width = `${Math.round(overallProgress * 100)}%`;
-                // Update Agent Cursor Trajectories (Standby N_V Orbit <-> Active Work / Bottom-Right Idle Dock)
-                const orbitScale = Math.min(1, vw / 1280);
+
+                // Update Agent Cursor Trajectories (Organized 3D Tilted Ring Orbit <-> Active Work / Bottom-Right Idle Dock)
+                const isMobile = vw < 768;
                 const centerX = vw * 0.5;
                 const centerY = vh * 0.46;
+
+                // Calibrated 3D tilted elliptical ring for text-6xl/text-8xl N_V logo
+                const rx = isMobile ? Math.min(vw * 0.38, 130) : 175;
+                const ry = isMobile ? 22 : 30;
+                const tiltAngle = -16 * (Math.PI / 180);
+                const cosTilt = Math.cos(tiltAngle);
+                const sinTilt = Math.sin(tiltAngle);
+                const orbitSpeed = 0.00145;
+
+                // Smoothly hide cursor name pills during initial orbit (orbitBlend > 0.5)
+                const pillOpacity = clamp((0.65 - orbitBlend) * 2.5, 0, 1);
 
                 // Bottom-Right Mini-Orbit Dock coordinates for idle agents during page build
                 const dockCenterX = vw - 90;
@@ -1159,20 +1732,22 @@
 
                 agents.forEach((ag, i) => {
                     const phase = (i / agents.length) * Math.PI * 2;
-                    const rx = (200 + (i % 3) * 45) * orbitScale;
-                    const ry = (115 + (i % 2) * 35) * orbitScale;
-                    const speed = 0.0014 + (i % 3) * 0.00025;
+                    const theta = now * orbitSpeed + phase;
 
-                    // 1. Initial Standby Orbit around central N_V logo
-                    const standbyOrbitX = centerX + Math.cos(now * speed + phase) * rx;
-                    const standbyOrbitY = centerY + Math.sin(now * speed + phase) * ry;
+                    // Unrotated ellipse coordinates (sin(theta) < 0 is the upper/back half behind N_V)
+                    const ex = Math.cos(theta) * rx;
+                    const ey = Math.sin(theta) * ry;
+                    const depth = Math.sin(theta); // -1 (farthest behind N_V) to +1 (closest in front of N_V)
 
-                    // 2. Active Build or Bottom-Right Idle Mini-Orbit
+                    // Apply -16 deg 2D rotation for the tilted ring path
+                    const standbyOrbitX = centerX + (ex * cosTilt - ey * sinTilt) - 6;
+                    const standbyOrbitY = centerY + (ex * sinTilt + ey * cosTilt) - 6;
+
+                    // Active Build or Bottom-Right Idle Mini-Orbit
                     let buildTargetX = ag.tx;
                     let buildTargetY = ag.ty;
 
                     if (!ag.activeTask) {
-                        // Tight mini-orbit in the bottom-right corner when not actively building
                         const miniRadiusX = 24 + (i % 3) * 6;
                         const miniRadiusY = 18 + (i % 2) * 6;
                         const miniSpeed = 0.0022 + (i % 3) * 0.0004;
@@ -1185,12 +1760,23 @@
                     const finalX = lerp(buildTargetX, standbyOrbitX, orbitBlend);
                     const finalY = lerp(buildTargetY, standbyOrbitY, orbitBlend);
 
-                    ag.x = lerp(ag.x, finalX, 0.22);
-                    ag.y = lerp(ag.y, finalY, 0.22);
+                    ag.x = lerp(ag.x, finalX, 0.24);
+                    ag.y = lerp(ag.y, finalY, 0.24);
 
-                    ag.el.style.transform = `translate3d(${ag.x.toFixed(1)}px, ${ag.y.toFixed(1)}px, 0)`;
+                    // 3D Depth scale and true z-index interleaving with #standby-nv-logo (z-index: 9995)
+                    const orbitDepthScale = 0.92 + 0.16 * depth;
+                    const currentScale = lerp(1.0, orbitDepthScale, orbitBlend);
 
-                    if (ag.mode === 'ibeam') {
+                    if (orbitBlend > 0.05) {
+                        ag.el.style.zIndex = depth < 0 ? '9990' : '9999';
+                    } else {
+                        ag.el.style.zIndex = '9999';
+                    }
+
+                    ag.pill.style.opacity = pillOpacity.toFixed(2);
+                    ag.el.style.transform = `translate3d(${ag.x.toFixed(1)}px, ${ag.y.toFixed(1)}px, 0) scale(${currentScale.toFixed(3)})`;
+
+                    if (ag.mode === 'ibeam' && orbitBlend < 0.3) {
                         ag.arrowSvg.style.display = 'none';
                         ag.ibeamSvg.style.display = 'block';
                     } else {
@@ -1220,18 +1806,17 @@
                         }
                     });
 
-                    layerCountEl.textContent = String(tasks.length);
-                    progressFill.style.width = '100%';
-                    statusBadge.textContent = 'Complete';
-                    statusBadge.classList.replace('text-cyan-400', 'text-green-400');
-
-                    agentLayer.style.opacity = '0';
+                    agents.forEach(ag => {
+                        ag.el.style.opacity = '0';
+                    });
                     marqueeLayer.style.opacity = '0';
                     setTimeout(() => {
-                        toolbar.style.opacity = '0';
-                        toolbar.style.transform = 'translate(-50%, 24px)';
-                        toolbar.style.pointerEvents = 'none';
-                    }, 900);
+                        if (toolbar) {
+                            toolbar.style.opacity = '0';
+                            toolbar.style.transform = 'translate(-50%, 16px)';
+                            toolbar.style.pointerEvents = 'none';
+                        }
+                    }, 600);
                 }
 
                 requestAnimationFrame(renderLoop);
@@ -1244,7 +1829,7 @@
                     cancelAnimationFrame(autoBuildRaf);
                     autoBuildRaf = null;
                 }
-                autoBuildLabel.textContent = 'Auto-Build';
+                if (autoBuildLabel) autoBuildLabel.textContent = 'scroll';
             }
 
             function stepAutoBuild() {
@@ -1260,16 +1845,18 @@
                 autoBuildRaf = requestAnimationFrame(stepAutoBuild);
             }
 
-            btnAutoBuild.addEventListener('click', () => {
-                if (isSiteComplete) return;
-                if (isAutoBuilding) {
-                    stopAutoBuild();
-                } else {
-                    isAutoBuilding = true;
-                    autoBuildLabel.textContent = 'Building...';
-                    autoBuildRaf = requestAnimationFrame(stepAutoBuild);
-                }
-            });
+            if (btnAutoBuild) {
+                btnAutoBuild.addEventListener('click', () => {
+                    if (isSiteComplete) return;
+                    if (isAutoBuilding) {
+                        stopAutoBuild();
+                    } else {
+                        isAutoBuilding = true;
+                        if (autoBuildLabel) autoBuildLabel.textContent = 'auto';
+                        autoBuildRaf = requestAnimationFrame(stepAutoBuild);
+                    }
+                });
+            }
 
             // Cancel Auto-Build immediately on user wheel or touch
             window.addEventListener('wheel', () => {
@@ -1279,25 +1866,65 @@
                 if (isAutoBuilding) stopAutoBuild();
             }, { passive: true });
 
-            // Toggle Wireframes Inspection Mode
-            btnWireframes.addEventListener('click', () => {
-                document.body.classList.toggle('show-wireframes');
-                btnWireframes.classList.toggle('text-cyan-400');
-                btnWireframes.classList.toggle('border-cyan-500/50');
-            });
+            // ==========================================
+            // HERO INTERACTIVE CONSTELLATION SPOTLIGHT
+            // ==========================================
+            function initHeroSpotlight() {
+                const revealLayer = document.getElementById('hero-bg-reveal');
+                if (!heroEl || !revealLayer) return;
 
-            // Clickable Progress Bar Jump
-            progressTrack.addEventListener('click', (e) => {
-                const rect = progressTrack.getBoundingClientRect();
-                const ratio = clamp((e.clientX - rect.left) / rect.width, 0, 1);
-                const targetY = ratio * (document.documentElement.scrollHeight - window.innerHeight);
-                window.scrollTo({ top: targetY, behavior: 'smooth' });
-            });
+                let targetSpotX = heroEl.offsetWidth * 0.5;
+                let targetSpotY = heroEl.offsetHeight * 0.5;
+                let curSpotX = targetSpotX;
+                let curSpotY = targetSpotY;
+                let isPointerInside = false;
+
+                function updateSpotlightCoords(clientX, clientY) {
+                    const rect = heroEl.getBoundingClientRect();
+                    if (clientY >= rect.top - 40 && clientY <= rect.bottom + 40) {
+                        targetSpotX = clientX - rect.left;
+                        targetSpotY = clientY - rect.top;
+                        isPointerInside = true;
+                        heroEl.style.setProperty('--spot-opacity', '1');
+                    } else {
+                        isPointerInside = false;
+                        heroEl.style.setProperty('--spot-opacity', '0');
+                    }
+                }
+
+                window.addEventListener('mousemove', (e) => {
+                    updateSpotlightCoords(e.clientX, e.clientY);
+                }, { passive: true });
+
+                window.addEventListener('touchmove', (e) => {
+                    if (e.touches && e.touches.length > 0) {
+                        updateSpotlightCoords(e.touches[0].clientX, e.touches[0].clientY);
+                    }
+                }, { passive: true });
+
+                document.addEventListener('mouseleave', () => {
+                    isPointerInside = false;
+                    heroEl.style.setProperty('--spot-opacity', '0');
+                }, { passive: true });
+
+                function animateSpotlight() {
+                    if (isPointerInside) {
+                        curSpotX = lerp(curSpotX, targetSpotX, 0.16);
+                        curSpotY = lerp(curSpotY, targetSpotY, 0.16);
+                        heroEl.style.setProperty('--spot-x', `${curSpotX.toFixed(1)}px`);
+                        heroEl.style.setProperty('--spot-y', `${curSpotY.toFixed(1)}px`);
+                    }
+                    requestAnimationFrame(animateSpotlight);
+                }
+                requestAnimationFrame(animateSpotlight);
+            }
 
             // Initialize on DOMContentLoaded
             window.addEventListener('DOMContentLoaded', () => {
+                syncHeroStickyHeight();
                 initAgents();
                 registerPortfolioTasks();
+                initHeroSpotlight();
                 requestAnimationFrame(renderLoop);
             });
         })();
